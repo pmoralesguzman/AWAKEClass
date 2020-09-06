@@ -23,6 +23,7 @@
 *.m4a
 *.m4v
 *.flv
+*.eps
 
 # ignore mat files
 
