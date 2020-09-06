@@ -1,0 +1,217 @@
+
+# Git ignore for the data and plotting files in MATLAB for the AWAKe Experiment
+#
+# P. I. Morales Guzman 2019
+#
+
+
+# ignore all files in MS
+
+**/MS
+
+# ignore all hdf5 files whatsoever
+
+*.h5
+
+# ignore all image and video files
+
+*.avi
+*.png
+*.jpg
+*.fig
+*.mp4
+*.m4a
+*.m4v
+*.flv
+
+# ignore mat files
+
+*.mat
+
+
+# ignore also all files in RE and TIMINGS
+
+**/RE
+**/TIMINGS
+
+################################################################################# gitignore templates from internet
+# Windows thumbnail cache files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+
+# Dump file
+*.stackdump
+
+# Folder config file
+[Dd]esktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# Windows default autosave extension
+*.asv
+
+# OSX / *nix default autosave extension
+*.m~
+
+# Compiled MEX binaries (all platforms)
+*.mex*
+
+# Packaged app and toolbox files
+*.mlappinstall
+*.mltbx
+
+# Generated helpsearch folders
+helpsearch*/
+
+# Simulink code generation folders
+slprj/
+sccprj/
+
+# Matlab code generation folders
+codegen/
+
+# Simulink autosave extension
+*.autosave
+
+
+
+*.tmp
+
+# Word temporary
+~$*.doc*
+
+# Word Auto Backup File
+Backup of *.doc*
+
+# Excel temporary
+~$*.xls*
+
+# Excel Backup File
+*.xlk
+
+# PowerPoint temporary
+~$*.ppt*
+
+# Visio autosave temporary files
+*.~vsd*
+
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# JPEG
+*.jpg
+*.jpeg
+*.jpe
+*.jif
+*.jfif
+*.jfi
+
+# JPEG 2000
+*.jp2
+*.j2k
+*.jpf
+*.jpx
+*.jpm
+*.mj2
+
+# JPEG XR
+*.jxr
+*.hdp
+*.wdp
+
+# Graphics Interchange Format
+*.gif
+
+# RAW
+*.raw
+
+# Web P
+*.webp
+
+# Portable Network Graphics
+*.png
+
+# Animated Portable Network Graphics
+*.apng
+
+# Multiple-image Network Graphics
+*.mng
+
+# Tagged Image File Format
+*.tiff
+*.tif
+
+# Scalable Vector Graphics
+*.svg
+*.svgz
+
+# Portable Document Format
+*.pdf
+
+# X BitMap
+*.xbm
+
+# BMP
+*.bmp
+*.dib
+
+# ICO
+*.ico
+
+# 3D Images
+*.3dm
+*.max
+
+
+
+
+
+
