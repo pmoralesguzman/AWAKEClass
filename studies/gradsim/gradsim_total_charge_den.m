@@ -49,7 +49,7 @@ do_cvsr     = true; % flag to do individual c vs r plots
 % simulation parameters
 initialdump = 0;
 studydump = 133;
-limitr = 1; %linspace(1,100,99)/100*3;
+limitr = 1; %linspace(1,100,99)/100*2.5;
 dataformat = 'mat';
 
 % calculated variables
@@ -95,7 +95,7 @@ for d = 1:length(datadirs)
     O.getdata(); O.trim_data(); O.denorm_density();
     
     for r = 1:length(trans_limit)
-        charge_translim(r,d) = O.cylindrical_integration(O.r,O.z,O.proton_beam,'simpsons')/initial_charge;
+        charge_translim(r,d) = O.cylindrical_integration(O.r(1:r),O.z,O.proton_beam(1:r,:),'simpsons')/initial_charge;
         charge_fraction(r,d) = charge_translim(r,d) ...
             + bunch_fraction_outside_simulation_window(r);
     end

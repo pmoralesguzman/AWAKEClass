@@ -14,13 +14,13 @@
 clear;
 
 % data directory
-datadirs = {'gm10'};
+datadirs = {'gm20d2'};
 % datadirs = {'gm20','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
 
 % simulation parameters
-dump = 133;
-dataformat = 'mat';
-useAvg = false;
+dump = 100;
+dataformat = 'h5';
+useAvg = true;
 
 % properties
 plasma_density = 1.81e14;
@@ -30,10 +30,10 @@ field = 'e';
 direction = 'z';
 
 % choose positive or negative side for the experimental data
-posinega = 'n';
+posinega = 'p';
 
 % limits
-plasma_radius = 0.17; % cm
+plasma_radius = 0.3; % cm
 xi_range = [21 0.7414]; % cm
 
 % analysis parameters
@@ -61,7 +61,7 @@ for d = 1:length(datadirs)
     
     % switch for datadir to choose freqs limits and
     switch datadir
-        case 'gm20'
+        case {'gm20','gm20d2'}
             %         freq_lims = [107 124]; % GHz gm20
             exp_g = 'gm19';
         case 'gp20'

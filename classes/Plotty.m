@@ -343,7 +343,7 @@ classdef Plotty < handle & OsirisDenormalizer
                     % the standard deviation is used as a measure the avoid
                     % noisy peaks that sets a wrong scale for the opaqueness
                     % get 3 times the std deviation with no weights
-                    meanstd_density = 0.5*std(density_plot,[],'all');
+                    meanstd_density = 3*std(density_plot,[],'all');
                     max_opaqueness = 1;
                     ind_opaque = max_opaqueness*density_plot;
                     ind_opaque(density_plot > meanstd_density) = max_opaqueness*meanstd_density;
