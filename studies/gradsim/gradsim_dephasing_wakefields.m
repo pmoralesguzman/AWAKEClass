@@ -72,7 +72,8 @@ for ph = 1:length(dephasing_xis)
         P1.waterfall_mat = OPA.waterfall_mat;
         P1.property = OPA.property;
         
-        P1.waterfall_plot(10+d);
+        P1.fig_number = 10+d;
+        P1.waterfall_plot();
         x_range = dephasing_xi+[-1 1];
         xlim(x_range);
         ind_x = fliplr((OPA.waterfall_xi < x_range(2)) & (OPA.waterfall_xi > x_range(1)));

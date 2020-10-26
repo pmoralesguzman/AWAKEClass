@@ -14,14 +14,13 @@
 clear;
 % close all;
 
-% datadirs = {'gm15','gm10','gm5','g0','gp1','gp2','gp5','gp10','gp15'};
-datadirs = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
-% datadirs = {'g0','gp5','gp10','gp15','gp20'};
+% datadirs = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
+datadirs = {'g0','gp5','gp10','gp15','gp20'};
 
 load('color_purple_to_green.mat');
-leg = {'-2 %/m','-1.5 %/m','-1 %/m','-0.5 %/m','0 %/m','0.5 %/m','1 %/m','1.5 %/m','2 %/m'};
-% leg = {'0 %/m','0.5 %/m','1 %/m','1.5 %/m','2 %/m'};
-% cc = cc(5:end,:);
+% leg = {'-2 %/m','-1.5 %/m','-1 %/m','-0.5 %/m','0 %/m','0.5 %/m','1 %/m','1.5 %/m','2 %/m'};
+leg = {'0 %/m','0.5 %/m','1 %/m','1.5 %/m','2 %/m'};
+cc = cc(5:end,:);
 % save file name
 plots_dir = ['gradsim_paper/amplitude/gradsim'];
 saveplot = true;
@@ -31,11 +30,11 @@ plasmaden = 1.81e14;
 dump_list = 1:1:100;
 sigma_z = 6.98516; % cm
 bunch_center = 3.7;
-wakefields_direction = 'trans';
+wakefields_direction = 'long';
 
-search_type = 'mean';
+search_type = 'max';
 search_xi = 6.98516;
-trans_range = [0 100];%[0.002 0.01];
+trans_range = [0.002 0.01];
 useAvg = false;
 dataformat = 'mat';
 
@@ -54,7 +53,7 @@ for d = 1:length(datadirs)
         'sigma_z',sigma_z,'bunch_center',bunch_center,...
         'dataformat',dataformat);
 %     OWA.xi_range = search_xi + 0.6*[OWA.plasma_wavelength,-OWA.plasma_wavelength];
-%     OWA.xi_range = [6.3 5.7];
+    OWA.xi_range = [6.3 5.7];
     
     % find max field
     OWA.amplitude_vs_z();
@@ -68,7 +67,7 @@ end
 P = Plotty('plots_dir',plots_dir);
 
 fig_amplitude = figure(5);
-line_style = {'-','-','-','-','-','-.','-.','-.','-.'};
+line_style = {'-','-.','-.','-.','-.'};
 colororder(cc);
 
 hold on
@@ -77,15 +76,15 @@ for d = 1:length(datadirs)
 end
 hold off
 fig_amplitude.Units = 'normalized';
-fig_amplitude.OuterPosition = [0 0.25 0.6 0.55];
+% fig_amplitude.OuterPosition = [0 0.25 0.6 0.55];
 axis('tight');
 xlim([0 10]);
 xlabel('z (m)');
-% ylabel(['max. E_z (MV/m)']);
-ylabel(['mean defocusing fields (MV/m)']);
+ylabel(['max. E_z (MV/m)']);
+% ylabel(['mean defocusing fields (MV/m)']);
 legend(leg,'Location','best')
-% P.plot_name = 'maxlongxi6';
-P.plot_name = 'meandefocusing';
+P.plot_name = 'maxlongxi6';
+% P.plot_name = 'meandefocusing';
 P.fig_handle = fig_amplitude;
 P.save_plot();
 

@@ -12,13 +12,13 @@
 % Last update: 05/08/2020
 %________________________________________________________________________
 
-% close all;
+close all;
 
 % file location variables
-datadir = 'gm20';
-dataformat = 'mat';
+datadir = 'R2gap100_2e14';
+dataformat = 'h5';
 useAvg = false;
-dump_list = 0:1:100;
+dump_list = 102:1:110;
 
 % saving data
 save_flag = true;
@@ -26,30 +26,33 @@ save_flag = true;
 save_format = {'png'};
 
 % plasma properties
-plasmaden = 1.81e14;
+plasmaden = 7e14;
 
 % choose fields to plot
-wakefields_direction = 'trans'; % trans, long
+wakefields_direction = 'long'; % trans, long
 
 % choose species density to plot
-species = 'proton_beam';
+species = 'electron_bunch'; 
 
 % choose limits (in cm, must denormalize)
-trans_range = [0 1.6];
+trans_range = [0 0.15];
 % xi_range = [4.8 4.4];
-xi_range = [21 0];
+xi_range = [6.5 0];
 
 % choose property to plot
-property_plot = 'both'; % density, wakefields, both
+property_plot = 'wakefields'; % density, wakefields, both
 
 % create movie or not
-create_movie = false;
+create_movie = true;
 
 % choose between normalized and denormalized units
 denormalize_flag = true; % true, false
 
+% choose scaling
+plot_scale = 'linear';
+
 % choose if make pause or not
-make_pause = false;
+make_pause = true;
 
 % directory to save the plots
 plots_dir = ['field_density/grads/',datadir,'/',...
@@ -66,12 +69,12 @@ P = Plotty('datadir',datadir,'dataformat',dataformat,...
     'plasmaden',plasmaden,'trans_range',trans_range,'xi_range',xi_range,...
     'wakefields_direction',wakefields_direction,'species',species,...
     'property_plot',property_plot,'denormalize_flag',denormalize_flag,...
-    'make_pause',make_pause);
+    'make_pause',make_pause,'fig_number',1);
 
 P.field_density_plot();
 
-yline(0.66,'k','LineWidth',2)
-yline(-0.66,'k','LineWidth',2)
+% yline(0.868,'r','LineWidth',2)
+% yline(-0.868,'r','LineWidth',2)
 % ylim([-1.6,1.6])
 P.save_plot();
 

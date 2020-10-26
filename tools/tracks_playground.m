@@ -9,7 +9,7 @@
 %__________________________________________________________________________
 
 
-trackpath = 'real_studies/g0/MS/TRACKS/proton_beam-tracks-repacked1.h5';
+trackpath = 'gm20/MS/TRACKS/proton_beam-tracks-repacked1.h5';
 % g0 particles: 47732
 % save each ndumpfac/10 iterations
 % total: 1000 points per particle

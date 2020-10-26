@@ -29,13 +29,13 @@ classdef OsirisLoader < handle
     properties(Constant, Hidden)
         
         % Physical constants
-        c_m         = physconst('LightSpeed'); % lightspeed, m/s
-        c_cm        = physconst('LightSpeed')*100; % lightspeed in cm , cm/s
-        e_charge_C  = 1.60217662e-19; % electron charge, C
-        e_mass_kg   = 9.1093837015e-31; % electron mass, kg
-        p_mass_kg   = 1.67262192369e-27; % proton mass, kg
-        e_mass_eV   = 0.51099895; % electron mass in MeV/c^2
-        p_mass_eV   = 938.2720813; % proton mass in MeV/c^2
+        c_m                 = physconst('LightSpeed'); % lightspeed, m/s
+        c_cm                = physconst('LightSpeed')*100; % lightspeed in cm , cm/s
+        e_charge_C          = 1.60217662e-19; % electron charge, C
+        e_mass_kg           = 9.1093837015e-31; % electron mass, kg
+        p_mass_kg           = 1.67262192369e-27; % proton mass, kg
+        e_mass_eV           = 0.51099895; % electron mass in MeV/c^2
+        p_mass_eV           = 938.2720813; % proton mass in MeV/c^2
         
         % note: dimensional analysis says F = s^2C^2 / m^2 kg
         permittivity        = 8.8541878128e-12; % permittivity of space, F/m
@@ -65,6 +65,7 @@ classdef OsirisLoader < handle
         tracks_pz;
         tracks_pr;
         tracks_pth;
+        trackfile_suffix;
         
     end
     
@@ -72,7 +73,7 @@ classdef OsirisLoader < handle
         
         % input, description in parser
         datadir; dataformat; useAvg;
-        property; species; field; raw_dataset; direction;
+        property; species; field; raw_dataset; track_dataset; direction;
         dump; wakefields_direction; lineout_point; lineout_direction;
         plasmaden;
         
@@ -139,13 +140,16 @@ classdef OsirisLoader < handle
             % For density or raw, specify the species name
             p.addParameter('species', 'proton_beam', @(x) ismember(x,{'proton_beam',...
                 'electrons','electron_bunch','electron_seed','electron_beam',...
-                'antiproton_seed','proton_beamfront'}));
+                'antiproton_seed','proton_beamfront','plasma_electrons'}));
             
             % For the fields, specify magnetic (b) or electrin (e)
             p.addParameter('field', 'e', @(x) ismember(x,{'e','b'}));
             % For the raw dataset, specify which data: energy - ene, momentum - p,
             % position - x, charge - , tag - tag
             p.addParameter('raw_dataset', 'ene', @(x) ismember(x,{'ene','p','x','q','tag'}));
+            % For the track data, specify which data: energy - ene, momentum - p,
+            % position - x, charge - , tag - tag
+            p.addParameter('track_dataset', 'ene', @(x) ismember(x,{'ene','p','x','q','tag'}));
             % For the fields or the positions and momenta in the raw data, specify
             % direction
             p.addParameter('direction', 'z', @(x) ismember(x,{'r','z','\theta'}));
@@ -161,9 +165,11 @@ classdef OsirisLoader < handle
             % depending on direction, point away from axis (long), or away from front of simulation window (trans)
             p.addParameter('lineout_point', 2, @(x) isfloat(x) && x >0);
             
-            
             % Plasma density
             p.addParameter('plasmaden', 1, @(x) isfloat(x) && x >=0);
+            
+            % Tracks file
+            p.addParameter('trackfile_suffix', '', @(x) ischar(x));
             
             
             p.parse(varargin{:});
@@ -178,6 +184,7 @@ classdef OsirisLoader < handle
             obj.species        = p.Results.species;
             obj.field          = p.Results.field;
             obj.raw_dataset    = p.Results.raw_dataset;
+            obj.track_dataset  = p.Results.track_dataset;
             obj.direction      = p.Results.direction;
             obj.dump           = p.Results.dump;
             obj.plasmaden      = p.Results.plasmaden;
@@ -186,7 +193,8 @@ classdef OsirisLoader < handle
             obj.lineout_direction...
                 = p.Results.lineout_direction;
             obj.lineout_point  = p.Results.lineout_point;
-            
+            obj.trackfile_suffix ...
+                = p.Results.trackfile_suffix;
             % getdata(obj);
             
         end % constructor
@@ -234,6 +242,14 @@ classdef OsirisLoader < handle
                     format_dir = 'MAT';
             end
             
+            switch obj.species
+                case 'plasma_electrons'
+                    species_name = 'electrons';
+                otherwise
+                    species_name = obj.species;
+                
+            end
+            
             switch obj.property
                 case 'fields'
                     property_name_file = [obj.field,temp_direction];
@@ -245,8 +261,8 @@ classdef OsirisLoader < handle
                     switch obj.property
                         case 'density'
                             property_name_file = 'charge';
-                            filename = ['charge',avg,'-',obj.species];
-                            obj.partialpath = [obj.datadir,'/',format_dir,'/DENSITY/',obj.species,'/charge',avg,'/'];
+                            filename = ['charge',avg,'-',species_name];
+                            obj.partialpath = [obj.datadir,'/',format_dir,'/DENSITY/',species_name,'/charge',avg,'/'];
                         case 'raw'
                             if strcmp(obj.raw_dataset,'ene') || strcmp(obj.raw_dataset,'q') || strcmp(obj.raw_dataset,'tag')
                                 temp_direction = '';
@@ -263,8 +279,7 @@ classdef OsirisLoader < handle
                     obj.fullpath = [obj.partialpath,filename,'-',dump_char,'.',obj.dataformat];
                 case 'tracks'
                     obj.partialpath = [obj.datadir,'/',format_dir,'/TRACKS/'];
-                    trackfile_number = '';
-                    obj.fullpath = [obj.partialpath,obj.species,'-tracks-repacked',trackfile_number,'.',obj.dataformat];
+                    obj.fullpath = [obj.partialpath,obj.species,'-tracks-repacked',obj.trackfile_suffix,'.',obj.dataformat];
             end % switch property
             
             
@@ -353,11 +368,23 @@ classdef OsirisLoader < handle
                                 end % if fprintf
                             end % for iter length
                             
+                            if strcmp(obj.fullpath,'gm20/MS/TRACKS/proton_beam-tracks-repacked_n130repeated.h5')
+                                tracks_in_order(:,:,[251:300]) = [];
+                            end
+                            
                             clear tracks_data_temp tracks_iter_temp
                             
                             tracks_obj.partialpath_handle = what(obj.partialpath);
                             tracks_partial_save_filename = [tracks_obj.partialpath_handle.path(1:end-9),'MAT\TRACKS'];
-                            tracks_full_save_filename = [tracks_partial_save_filename,'\',obj.species,'-tracks-repacked.mat'];
+                            tracks_full_save_filename = [tracks_partial_save_filename,'\',obj.species,'-tracks-repacked',obj.trackfile_suffix,'.mat'];
+                            tracks_full_save_filename_time = [tracks_partial_save_filename,'\',obj.species,'-tracks-repacked-time',obj.trackfile_suffix,'.mat'];
+                            tracks_full_save_filename_q = [tracks_partial_save_filename,'\',obj.species,'-tracks-repacked-q',obj.trackfile_suffix,'.mat'];
+                            tracks_full_save_filename_ene = [tracks_partial_save_filename,'\',obj.species,'-tracks-repacked-ene',obj.trackfile_suffix,'.mat'];
+                            tracks_full_save_filename_z = [tracks_partial_save_filename,'\',obj.species,'-tracks-repacked-z',obj.trackfile_suffix,'.mat'];
+                            tracks_full_save_filename_r = [tracks_partial_save_filename,'\',obj.species,'-tracks-repacked-r',obj.trackfile_suffix,'.mat'];
+                            tracks_full_save_filename_pz = [tracks_partial_save_filename,'\',obj.species,'-tracks-repacked-pz',obj.trackfile_suffix,'.mat'];
+                            tracks_full_save_filename_pr = [tracks_partial_save_filename,'\',obj.species,'-tracks-repacked-pr',obj.trackfile_suffix,'.mat'];
+                            tracks_full_save_filename_pth = [tracks_partial_save_filename,'\',obj.species,'-tracks-repacked-pth',obj.trackfile_suffix,'.mat'];
                             
                             if isfile(tracks_full_save_filename)
                                 obj.tracks_time  = squeeze(tracks_in_order(:,1,:));
@@ -381,9 +408,17 @@ classdef OsirisLoader < handle
                                 tracks_pth = squeeze(tracks_in_order(:,8,:)); %#ok<PROP>
                                 
                                 if ~isfolder(tracks_partial_save_filename); mkdir(tracks_partial_save_filename); end
-                                save(tracks_full_save_filename,'tracks_time',...
-                                    'tracks_q','tracks_ene','tracks_z','tracks_r',...
+                                save(tracks_full_save_filename,'tracks_time','tracks_q',...
+                                    'tracks_ene','tracks_z','tracks_r',...
                                     'tracks_pz','tracks_pr','tracks_pth');
+%                                 save(tracks_full_save_filename_time,'tracks_time');
+%                                 save(tracks_full_save_filename_q,'tracks_q');
+%                                 save(tracks_full_save_filename_ene,'tracks_ene');
+%                                 save(tracks_full_save_filename_z,'tracks_z');
+%                                 save(tracks_full_save_filename_r,'tracks_r');
+%                                 save(tracks_full_save_filename_pz,'tracks_pz');
+%                                 save(tracks_full_save_filename_pr,'tracks_pr');
+%                                 save(tracks_full_save_filename_pth,'tracks_pth');
                                 
                                 obj.tracks_time  = squeeze(tracks_in_order(:,1,:));
                                 obj.tracks_q = squeeze(tracks_in_order(:,2,:));
@@ -429,14 +464,39 @@ classdef OsirisLoader < handle
                             tracks_full_save_filename = [tracks_partial_save_filename,'\',obj.species,'-tracks-repacked.mat'];
                             if ~isfile(tracks_full_save_filename); error('Please try running the code once with hdf5'); end
                             
-                            obj.tracks_time  = data.tracks_time;
-                            obj.tracks_q = data.tracks_q;
-                            obj.tracks_ene = data.tracks_ene;
-                            obj.tracks_z = data.tracks_z;
-                            obj.tracks_r = data.tracks_r;
-                            obj.tracks_pz = data.tracks_pz;
-                            obj.tracks_pr = data.tracks_pr;
-                            obj.tracks_pth = data.tracks_pth;
+                            switch obj.track_dataset
+                                case 'q'
+                                    obj.tracks_q = data.tracks_q;
+                                case 'ene'
+                                    obj.ene = data.ene;
+                                case 'tag'
+                                    obj.tag = data.tag;
+                                case 'x'
+                                    switch obj.direction
+                                        case 'z'
+                                            obj.tracks_z = data.tracks_z;
+                                        case 'r'
+                                            obj.tracks_r= data.tracks_r;
+                                    end % switch direction
+                                case 'p'
+                                    switch obj.direction
+                                        case 'z'
+                                            obj.tracks_pz = data.tracks_pz;
+                                        case 'r'
+                                            obj.tracks_pr = data.tracks_pr;
+                                        case '\theta'
+                                            obj.tracks_pth = data.tracks_pth;
+                                    end % switch direction
+                            end % switch raw dataset
+                            
+%                             obj.tracks_time  = data.tracks_time;
+%                             obj.tracks_q = data.tracks_q;
+%                             obj.tracks_ene = data.tracks_ene;
+%                             obj.tracks_z = data.tracks_z;
+%                             obj.tracks_r = data.tracks_r;
+%                             obj.tracks_pz = data.tracks_pz;
+%                             obj.tracks_pr = data.tracks_pr;
+%                             obj.tracks_pth = data.tracks_pth;
                             
                     end % switch property
                     
@@ -688,6 +748,26 @@ classdef OsirisLoader < handle
                     intout = trapz(z,2*pi*trapz(r',(r').*data));
                 case 'simpsons'
                     intout = simpsons(z,2*pi*simpsons(r',(r').*data));
+            end % switch integral type
+        end % cylindrical_integration
+        
+        function intout = cylindrical_radial_integration(r,data,varargin)
+            if nargin == 2
+                integral_type = 'sum';
+            else
+                integral_type = varargin{1};
+            end % if nargin
+            
+            switch integral_type
+                case 'sum'
+                    dr = r(2) - r(1);
+                    intout = 2*pi*dr*sum((r').*data);
+                case 'trapz'
+                    intout = 2*pi*trapz(r',(r').*data);
+                case 'simpsons'
+                    intout = 2*pi*simpsons(r',(r').*data);
+                case 'just_sum'
+                    intout = sum(data);
             end % switch integral type
         end % cylindrical_integration
         

@@ -13,7 +13,7 @@
 %________________________________________________________________________
 
 clear;
-% close all;
+close all;
 % load experimental data from Tatiana
 
 % charge_exp    = load('totalcharge_exp.txt');
@@ -25,14 +25,12 @@ errorbars_exp = load('errorbars_totalcharge_1sigma.txt');
 % -----------------------------------------------------------------
 % data directory
 datadirs    = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
-% datadirs    = {'gm20d2','gm15d2','gm10d2','gm5d2','g0d2','gp5d2','gp10d2','gp15d2','gp20d2'};
-
 grads_exp   = [-19.4,-9.3,-5.16,0.3,4.3,8.7,13,20]/1;
 grads_sim   = [-20,-15,-10,-5,0,5,10,15,20];
 dataformat  = 'mat';
 useAvg      = false;
 initialdump = 0;
-dump        = 119;
+dump        = 133;
 
 % save directory
 plots_dir           = ['gradsim_paper/total_charge_compare/',''];
@@ -46,15 +44,15 @@ plasma_density  = 1.81e14;
 % plasma parameters
 seeding_position    = 3.8074; % (127) ps ps*1e-12*O.c_cm
 sigma_z             = 6.98516; % cm
-sigma_exp           = 0.001; % cm 0.0536
+sigma_exp           = 0.066; % cm 0.0536
 exp_upperlimit      = sigma_exp;
 
 % analysis
-distance    = 200; % cm
+distance    = 350; % cm
 limitr      = 1; %linspace(1,100,99)/100*3;
 
 % switches
-do_cvsr             = false; % flag to do individual c vs r plots
+do_cvsr             = true; % flag to do individual c vs r plots
 save_all_plots      = false;
 save_plot_flag      = false;
 
@@ -85,7 +83,7 @@ initial_charge      = 3e11;
 
 % the charge within 1 sigma of the unmodulated proton bunch is taken as 1.0
 % in the experiment
-sigma_normalization = 1.0;
+sigma_normalization = 1;
 exp_normalization = 1 - exp(-(sigma_normalization)^2/2);
 exp_normalization = 1*exp_normalization;
 
@@ -119,7 +117,7 @@ sz = 50;
 marker_size = 10;
 
 if length(trans_limit) == 1 % if only one radius is chosen, plot both on the same graph
-    fig_cvsg = figure;
+    fig_cvsg = figure(1);
     [~,indr_exp] = min(abs(trans_limit-exp_r));
     plot_exp = errorbar(grads_exp/10,charge_exp(indr_exp,:),errorbars_exp(indr_exp,:),...
         's','MarkerFaceColor','auto','MarkerSize',marker_size); %    DATA
@@ -127,10 +125,10 @@ if length(trans_limit) == 1 % if only one radius is chosen, plot both on the sam
     plot_sim = plot(grads_sim/10,sim_charge,'o','MarkerSize',marker_size); % SIM
     set(plot_sim, 'MarkerFaceColor', get(plot_sim,'Color'))
     hold off
-    legend([plot_sim(1) plot_exp(1)],'simulation','exp. data \pm std. dev.','location','northwest');
+    legend([plot_sim(1) plot_exp(1)],'Simulation','Exp. data \pm std. dev.','location','northwest');
     grid on
     xlabel('density gradient (%/m)')
-    ylabel('charge fraction (a.u.)')
+    ylabel('total charge fraction (a.u.)')
     xlim([-2.2,2.2])
     %     ylim([0 0.85])
     drawnow;
@@ -145,8 +143,8 @@ else % otherwise, each set of curves in its own graph
     grads_exp_matrix = repmat(grads_exp/10,exp_steps,1);
     plot_exp = plot(grads_exp_matrix',1/1*charge_exp(1:exp_steps,:)','o-');
     xlabel('density gradient %/m')
-    ylabel('charge fraction')
-    title('charge fraction (experiment)')
+    ylabel('bunch fraction')
+    title('Total charge (experiment)')
     xlim([-2.2,2.2])
     ylim([0 1.2])
     drawnow;
@@ -159,8 +157,8 @@ else % otherwise, each set of curves in its own graph
     grads_mat = repmat(grads_sim/10,99,1);
     plot_sim = plot(grads_mat',sim_charge','-o');
     xlabel('density gradient %/m')
-    ylabel('charge fraction')
-    title('charge fraction (simulation)')
+    ylabel('bunch fraction')
+    title('Total charge (simulation)')
     xlim([-2.2,2.2])
     ylim([0 1.2])
     drawnow;

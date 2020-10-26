@@ -125,7 +125,9 @@ classdef OsirisPhaseAnalysis < handle & OsirisDenormalizer
         
         function obj = dephasing(obj)
             
-            obj.waterfall(); % set obj.waterfall_mat
+            % out: dephasing_line
+            
+            obj.build_waterfall(); % set obj.waterfall_mat
             
             dephasing_point = obj.simulation_window - obj.dephasing_xi;
             waterfall_dephasing = flipud(obj.waterfall_mat);
@@ -134,7 +136,7 @@ classdef OsirisPhaseAnalysis < handle & OsirisDenormalizer
                 save_trans_range = obj.trans_range;
                 obj.property = 'density';
                 obj.trans_range = [0 0.02];
-                obj.waterfall();
+                obj.build_waterfall();
                 weights_mat = flipud(obj.waterfall_mat);
                 obj.property = save_property;
                 obj.trans_range = save_trans_range;
@@ -142,7 +144,7 @@ classdef OsirisPhaseAnalysis < handle & OsirisDenormalizer
             obj.weight_line = zeros(1,size(waterfall_dephasing,1));
             for ii = 1:size(waterfall_dephasing,1)
                 
-                dephasing_range_xi = dephasing_point + [-obj.plasma_wavelength/4,obj.plasma_wavelength/4];
+                dephasing_range_xi = dephasing_point + [-obj.plasma_wavelength/3,obj.plasma_wavelength/3];
                 
                 ind_xi = (obj.waterfall_xi > dephasing_range_xi(1)) & (obj.waterfall_xi < dephasing_range_xi(2));
                 poly_xi = obj.waterfall_xi(ind_xi);
@@ -154,7 +156,7 @@ classdef OsirisPhaseAnalysis < handle & OsirisDenormalizer
                     obj.weight_line(ii) = sum(weights_mat(ii,ind_xi));
                 end
                 
-                [pfit,~,mu]  = polyfit(poly_xi,field_line,3);
+                [pfit,~,mu]  = polyfit(poly_xi,field_line,4);
                 
                 poly_xi10 = linspace(poly_xi(1),poly_xi(end),10*length(poly_xi));
                 poly_data = polyval(pfit,poly_xi10,[],mu);
@@ -178,7 +180,16 @@ classdef OsirisPhaseAnalysis < handle & OsirisDenormalizer
                         dephasing_line_temp = poly_xi10(max_pos);
                         
                 end
-                
+%                 if ii > 89 && ii < 96
+%                     figure(10)
+%                 hold on
+%                 plot(poly_xi,field_line)
+%                 hold off
+%                 figure(11)
+%                 hold on
+%                 plot(poly_xi10,poly_data)
+%                 hold off
+%                 end
                 % Ideally there should be one zero crossing, specially
                 % since an interpolation of the fields is used to find it,
                 % but in the case there are many (range to large, or data too noisy),
@@ -265,13 +276,17 @@ classdef OsirisPhaseAnalysis < handle & OsirisDenormalizer
 %             pause
         end % phase_average
         
-        function obj = waterfall(obj)
-            
+        function obj = build_waterfall(obj)
+            if obj.useAvg
+                avg = 'avg';
+            else
+                avg = '';
+            end
             % check if there is already a waterfall plot to load
             obj.waterfall_filename = ['save_files/waterfall/waterfall_mat_',...
                 obj.property,'_',obj.datadir,'_',obj.wakefields_direction,...
                 num2str(obj.dump_list(1)),'to',num2str(obj.dump_list(end)),...
-                '.mat'];
+                avg,'.mat'];
             
             if isfile(obj.waterfall_filename) && ~obj.force_waterfall
                 

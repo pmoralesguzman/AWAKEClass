@@ -14,11 +14,11 @@
 
 datadir = 'gp20';
 plasmaden = 1.81e14;
-dump_list = 50:100;
+dump_list = 80:2:100;
 reference_dump = 100;
 useAvg = false;
 dataformat = 'mat';
-trans_range = [0.14 0.15];
+trans_range = [0.15 0.16];
 ntag = 1000;
 
 OPT = OsirisParticleTracking('datadir',datadir,'plasmaden',plasmaden,...
@@ -45,7 +45,7 @@ tags = unique(tags,'rows');
 
 number_of_tags = length(tags);
 
-csvwrite('protonsgp20.tags',[number_of_tags,0;tags])
+csvwrite('protonstest.tags',[number_of_tags,0;tags])
 
 %% check by plotting
 

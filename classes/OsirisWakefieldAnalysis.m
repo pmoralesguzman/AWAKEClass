@@ -112,8 +112,9 @@ classdef OsirisWakefieldAnalysis < handle & OsirisDenormalizer
                 obj.trim_data();
                 obj.denorm_distance();
                 obj.propagation_z(n) = obj.propagation_distance;
+                
                 use_envelope = false;
-                search_xi = false;
+                search_xi = true;
                 switch obj.search_type
                     case 'max'
                         % gives only upper end of envelope
@@ -129,7 +130,7 @@ classdef OsirisWakefieldAnalysis < handle & OsirisDenormalizer
                             (obj.simulation_window - obj.bunch_center))/obj.sigma_z;
                         if search_xi
                         obj.xi_range = (obj.simulation_window - (obj.z(ind_max) - obj.dtime)) +...
-                            [obj.plasma_wavelength/2,-obj.plasma_wavelength/2];
+                            0.6*[obj.plasma_wavelength,-obj.plasma_wavelength];
                         end
                         obj.progress_dump('maximum field',n,length(obj.dump_list))
                     case 'mean'

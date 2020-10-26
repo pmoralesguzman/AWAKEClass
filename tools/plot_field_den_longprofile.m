@@ -1,6 +1,6 @@
 %________________________________________________________________________
 % Plot the 2D wakefields together with the proton bunch, or each
-% individually. Optimized to plot JohnMix sims.
+% individually
 %
 % Osiris 4.4.4
 %
@@ -9,70 +9,79 @@
 % Work in progress
 %
 % P. I. Morales Guzman
-% Last update: 31/08/2020
+% Last update: 05/08/2020
 %________________________________________________________________________
 
 close all;
 
 % file location variables
-datadirs = {'gm20','gm20d2'};
-dataformat = 'h5';
+datadir = 'gm20';
+dataformat = 'mat';
 useAvg = false;
-dump_list = 1:1:100;
+dump_list = 45:1:78;
 
 % saving data
 save_flag = true;
 % plots_dir = ['field_density/grads/',datadir];
-save_format = {'png','eps','fog'};
+save_format = {'png'};
 
 % plasma properties
 plasmaden = 1.81e14;
 
 % choose fields to plot
-wakefields_direction = 'long'; % trans, long
+wakefields_direction = 'trans'; % trans, long
 
 % choose species density to plot
-species = 'proton_beam';
+species = 'proton_beam'; 
 
 % choose limits (in cm, must denormalize)
-trans_range = [0 0.3];
-xi_range = [21 0];
-lineout_point = 5;
+trans_range = [0 0.16];
+% xi_range = [4.8 4.4];
+xi_range = [6 1];
 
 % choose property to plot
-property_plot = 'wakefields'; % density, wakefields, both
+property_plot = 'both'; % density, wakefields, both
 
 % create movie or not
-create_movie = false;
+create_movie = true;
 
 % choose between normalized and denormalized units
 denormalize_flag = true; % true, false
 
+% choose scaling
+plot_scale = 'linear';
+
 % choose if make pause or not
 make_pause = false;
 
+% figure number 
+fig_number = 1;
 
 
 % directory to save the plots
-plots_dir = ['lineouterase/',datadir,'/',...
+plots_dir = ['gradsim_paper/field_density_longprofile/grads/',datadir,'/',...
     property_plot,'/',wakefields_direction,'/',...
     'xi',num2str(round(xi_range(1))),'xi',...
     num2str(round(xi_range(2)))];
 
 P = Plotty('datadir',datadir,'dataformat',dataformat,...
     'useAvg',useAvg,'dump_list',dump_list,...
+    'plot_scale',plot_scale,...
     'save_flag',save_flag,'save_format',save_format,'plots_dir',plots_dir,...
     'create_movie',create_movie,...
     'plasmaden',plasmaden,'trans_range',trans_range,'xi_range',xi_range,...
     'wakefields_direction',wakefields_direction,'species',species,...
     'property_plot',property_plot,'denormalize_flag',denormalize_flag,...
-    'make_pause',make_pause,'lineout_point',lineout_point);
+    'make_pause',make_pause,'fig_number',fig_number,...
+    'include_long_profile',true);
 
-P.lineout_plot();
-P.save_flag = true;
-P.plot_name = 'lineout_comp_gm20';
-title(['propagation dist. = ' num2str(P.propagation_distance/100),' m',' (r = 0.05/k_p)']); 
+figure(fig_number);
+P.field_density_plot();
+
+% yline(0.868,'r','LineWidth',2)
+% yline(-0.868,'r','LineWidth',2)
+% ylim([-1.6,1.6])
+
+
 P.save_plot();
-writematrix(P.lineout','lineout.dat');
-writematrix(P.z','z.dat');
 

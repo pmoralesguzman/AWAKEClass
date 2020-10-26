@@ -48,7 +48,8 @@ classdef OsirisDenormalizer < handle & OsirisLoader
         time; % ntime of the dump in norm. units
         z; r; % long. and trans. axes
         simulation_window; % simulation window
-        propagation_distance; % propagation distance
+        propagation_distance; % propagation distance (default in cm)
+        propagation_distance_m; % propagation distance in m
         dtime; % time denormalized as distance
         
         % output
@@ -152,6 +153,7 @@ classdef OsirisDenormalizer < handle & OsirisLoader
                 obj.dtime = obj.ntime*denorm_factor;
                 obj.simulation_window = obj.n_simulation_window*denorm_factor;
                 obj.propagation_distance = obj.n_propagation_distance*denorm_factor;
+                obj.propagation_distance_m = obj.n_propagation_distance*obj.c_m/obj.plasmafreq;
                 varargout{1} = obj;
             else
                 varargout{1} = varargin{1}*denorm_factor;
@@ -326,8 +328,8 @@ classdef OsirisDenormalizer < handle & OsirisLoader
             
             obj.denorm_distance(); % make sure to have normalized axis
             
-            z_ind = obj.z > max(obj.z) - obj.xi_range(1) & ... %large
-                obj.z <= max(obj.z) - obj.xi_range(2); % small
+            z_ind = obj.z > obj.dtime+obj.simulation_window - obj.xi_range(1) & ... %large
+                obj.z <= obj.dtime+obj.simulation_window - obj.xi_range(2); % small
             obj.z = obj.z(z_ind);
             obj.nz = obj.nz(z_ind);
             

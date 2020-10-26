@@ -59,6 +59,9 @@ classdef AwakeFFT < handle & OsirisDenormalizer
         ind_pksearch;
         phase_starting_point;
         
+        locs;
+        pks;
+        
     end % hidden properties
     
     
@@ -78,7 +81,7 @@ classdef AwakeFFT < handle & OsirisDenormalizer
             % fft peaks (peak selection)
             p.addParameter('fft_low_lim', 0.5, @(x) isfloat(x) && (x > 0));
             p.addParameter('fft_upp_lim', 1.5, @(x) isfloat(x) && (x > 0));
-            p.addParameter('peak_distance', 0.01, @(x) isfloat(x) && (x > 0));
+            p.addParameter('peak_distance', 0.005, @(x) isfloat(x) && (x > 0));
             
             
             p.KeepUnmatched = true;
@@ -141,26 +144,26 @@ classdef AwakeFFT < handle & OsirisDenormalizer
                             case 'sum'
                                 obj.fft_densitymatrix(r,:) = obj.dr*sum(obj.(obj.species)(ir,:));
                             case 'lineout'
-                                ir = find(ir,1);
-                                if ir(1)<5
-                                    ir(1) = 5;
+                                ir = find(ir);
+                                if ir(end)<5
+                                    ir(end) = 5;
                                     warning('Changed trans. limit to cell 5 to avoid noise near axis')
                                 end
-                                obj.fft_densitymatrix(r,:) = obj.(obj.species)(ir(1),:);
+                                obj.fft_densitymatrix(r,:) = obj.(obj.species)(ir(end),:);
                         end % switch on axis
                         
                     case 'fields'
-                        if (~strcmp(obj.on_axis,'lineout') && (r == 1));warning('Picking lineout'); end
-                        ir = find(ir,1);
-                        if ir(1)<5
-                            ir(1) = 5;
+                        if (~strcmp(obj.on_axis,'lineout') && (r == 1)); warning('Picking lineout'); end
+                        ir = find(ir);
+                        if ir(end) < 5
+                            ir(end) = 5;
                             warning('Changed trans. limit to 5 to avoid noise near axis')
                         end
-                        switch obj.direction
-                            case 'r'
-                                obj.fft_fieldmatrix(r,:) = obj.transfield(ir(1),:);
-                            case 'z'
-                                obj.fft_fieldmatrix(r,:) = obj.longfield(ir(1),:);
+                        switch obj.wakefields_direction
+                            case 'trans'
+                                obj.fft_fieldmatrix(r,:) = obj.transfield(ir(end),:);
+                            case 'long'
+                                obj.fft_fieldmatrix(r,:) = obj.longfield(ir(end),:);
                         end % switch direction
                 end % switch property
                 
@@ -184,8 +187,14 @@ classdef AwakeFFT < handle & OsirisDenormalizer
             obj.property = 'density';
             obj.getdata();
             
-            % denormalize z
+%             % denormalize z
             obj.z_raw = obj.denorm_distance(obj.nz_raw);
+%             
+%             % trim in z 
+%             iz = (obj.z_raw >= obj.xi_range(2)) & (obj.z_raw < obj.xi_range(1));
+            
+
+            
             
             % push charges and denormalize
             distance = 350;
@@ -206,7 +215,7 @@ classdef AwakeFFT < handle & OsirisDenormalizer
                         ir = obj.r_raw < obj.trans_lims(r);
                     case 'slice'
                         if (r == 1) %&& (obj.trans_lims(1)~=0)
-                            trans_lims_slice = [0,obj.trans_lims];
+                            trans_lims_slice = [obj.trans_lims];
                             %                         elseif obj.trans_lims(1) == 0
                             %                         trans_lims_slice = obj.trans_lims;
                         end
@@ -227,7 +236,7 @@ classdef AwakeFFT < handle & OsirisDenormalizer
                 % say how many there is in each bin in a cumulative way,
                 % to use that as indices
                 % for q, to quickly build up the indexed density along z
-                ind_sum = [0,histcounts(ind_sort,1:1:max(ind_sort),'Normalization','cumcount')]; 
+                ind_sum = [0,0,histcounts(ind_sort,1:1:length(obj.z),'Normalization','cumcount')]; 
 
                 % go through each element in bz and arrange that charge
                 % according to the bins, using the indeces from histconts
@@ -316,10 +325,12 @@ classdef AwakeFFT < handle & OsirisDenormalizer
             % look for peaks within the set limits
             obj.ind_pksearch = ((freqs > low_lim) & (freqs < upp_lim));
             
-            [pks,locs] = findpeaks(amplitude(obj.ind_pksearch),freqs(obj.ind_pksearch),...
+            [obj.pks,obj.locs] = findpeaks(amplitude(obj.ind_pksearch),freqs(obj.ind_pksearch),...
                 'MinPeakDistance',peak_dis);
-            [obj.maxpeak,maxlocs] = max(pks);
-            obj.maxloc = locs(maxlocs);
+            [obj.maxpeak,maxlocs] = max(obj.pks);
+            if isempty(obj.maxloc) || ~(obj.maxloc == 115)  % some harcoded thing for tracking, no meaning
+                obj.maxloc = obj.locs(maxlocs);
+            end
             
             % calculate phase of dominant frequency
             
@@ -342,6 +353,7 @@ classdef AwakeFFT < handle & OsirisDenormalizer
                     'Upper',[2*pi],...
                     'StartPoint',[obj.phase_starting_point]);
                 wavenumber = obj.maxloc*1e9/obj.c_cm;
+                norm_amplitude = max(amplitude)/2;
                 ft = fittype('(cos(wavenumber*(2*pi*z) + phi) > 0)*cos(wavenumber*(2*pi*z) + phi)','problem','wavenumber',...
                     'independent','z','dependent','density','options',fo);
                 fit_results = fit(obj.z',long_profile',ft,'problem',wavenumber);

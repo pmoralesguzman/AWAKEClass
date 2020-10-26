@@ -12,10 +12,10 @@
 % Last update: 31/08/2020
 %________________________________________________________________________
 
-close all;
+% close all;
 
 % file location variables
-datadir = 'johnmixthin';
+datadir = 'johnmixthin50';
 dataformat = 'h5';
 useAvg = false;
 dump_list = 2:1:2;
@@ -29,7 +29,8 @@ save_format = {'png','eps'};
 plasmaden = 7e14;
 
 % choose fields to plot
-wakefields_direction = 'long'; % trans, long
+wakefields_direction = 'trans'; % trans, long
+lineout_point = 2;
 
 % choose species density to plot
 species = 'proton_beam';
@@ -45,7 +46,7 @@ property_plot = 'wakefields'; % density, wakefields, both
 create_movie = false;
 
 % choose between normalized and denormalized units
-denormalize_flag = true; % true, false
+denormalize_flag = false; % true, false
 
 % choose if make pause or not
 make_pause = false;
@@ -65,13 +66,14 @@ P = Plotty('datadir',datadir,'dataformat',dataformat,...
     'plasmaden',plasmaden,'trans_range',trans_range,'xi_range',xi_range,...
     'wakefields_direction',wakefields_direction,'species',species,...
     'property_plot',property_plot,'denormalize_flag',denormalize_flag,...
-    'make_pause',make_pause,'lineout_point',10);
-
+    'make_pause',make_pause,'lineout_point',lineout_point);
+hold on
 P.lineout_plot();
+hold off
 P.save_flag = true;
-P.plot_name = 'r0p1kp';
-title(['propagation dist. = ' num2str(P.propagation_distance/100),' m',' (r = 0.1/k_p)']); 
-P.save_plot();
-writematrix(P.lineout','r0p1kp.dat');
-writematrix(P.z','z.dat');
+P.plot_name = 'trans_r105kp';                                        % (r = 0.1/k_p)
+title(['propagation dist. = ' num2str(P.n_propagation_distance),'',' (r = 0.005/k_p)']); 
+% P.save_plot();
+writematrix(P.nlineout','trans_r005kp.dat');
+% writematrix((P.nz-P.n_simulation_window)','z.dat');
 

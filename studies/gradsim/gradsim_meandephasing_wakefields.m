@@ -16,7 +16,7 @@
 clear;
 close all;
 % datadirs = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
-datadirs = {'g0'};
+datadirs = {'gp5'};
 
 plasmaden = 1.81e14;
 property = 'fields';

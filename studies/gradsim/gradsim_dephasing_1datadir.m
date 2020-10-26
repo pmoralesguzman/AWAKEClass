@@ -19,34 +19,24 @@ datadir = 'gp20';
 
 plasmaden = 1.81e14;
 property = 'fields';
-dump_list = 10:1:100;
+dump_list = 1:1:100;
 useAvg = false;
 dataformat = 'mat';
 
 wakefields_direction = 'long';
-lineout_point = 50;
+lineout_point = 5;
 
 trans_range = [0 0.02]; % if density
-dephasing_xis = [1,2,3,4,4.9]; % cm
+dephasing_xis = [0.1]; % cm
 label_leg = num2cell(dephasing_xis);
 dephasing_search = '0x'; % 0x, max
 force_waterfall = false;
 
 % initialize some plotty
-P = Plotty('plots_dir','dephasing/gradsim/wakefields','save_format',{'png','eps'},...
+P = Plotty('plots_dir','gradsim_paper/dephasing/gradsim/wakefields','save_format',{'png','eps'},...
     'wakefields_direction',wakefields_direction);
 
-cc = [237,248,177
-    199,233,180
-    127,205,187
-    65,182,196
-    29,145,192
-    34,94,168
-    37,52,148
-    8,29,88
-    6,24,77
-    4,19,66
-    2,10,44]/256;
+load('color_purple_to_green.mat');
 
 for ph = 1:length(dephasing_xis)
     dephasing_xi = dephasing_xis(ph);
@@ -71,8 +61,8 @@ for ph = 1:length(dephasing_xis)
     P.waterfall_mat = OPA.waterfall_mat;   
     P.property = OPA.property;
     
-            P.waterfall_plot(10+ph);
-            x_range = dephasing_xi+[-1 1];
+            P.waterfall_plot();
+            x_range = dephasing_xi+[0 21];
             xlim(x_range);
             ind_x = fliplr((OPA.waterfall_xi < x_range(2)) & (OPA.waterfall_xi > x_range(1)));
             colormap_low = min(OPA.waterfall_mat(:,ind_x),[],'all');
@@ -102,7 +92,7 @@ for ph = 1:length(dephasing_xis)
             P.save_plot();
     
     % just the dephasing line, holds the figure for the next datadir
-    fig1 = figure(1);
+    fig2 = figure(2);
     colororder(cc);
     hold on
     p1 = plot(linspace(OPA.waterfall_z(1),OPA.waterfall_z(2),length(OPA.dephasing_line)),...
@@ -111,7 +101,7 @@ for ph = 1:length(dephasing_xis)
     
     % labels for the dephasing lines
     ylabel('phase (\lambda_p)')
-    xlabel('propagation distance (m)')
+    xlabel('z (m)')
     legend('1','2','3','4','5','Location','best')
     xlim([0 10])
     % ylim([-6 1]);
@@ -120,6 +110,6 @@ for ph = 1:length(dephasing_xis)
 end
 
 P.plot_name = ['gradsim_dephasing_fields_',datadir,num2str(dephasing_xi)]; % PLOT NAME
-P.fig_handle = fig1;
-P.save_plot();
+P.fig_handle = fig2;
+% P.save_plot();
 

@@ -16,13 +16,13 @@
 % corresponding values, one should use dump 99 with point 199. 
 
 % clear;
-close all;
+% close all;
 % data location
 datadirs = {'gm20'};
 dataformat = 'mat';
 useAvg = false;
 
-dump_fft = 99; % must be at 99
+dump_fft = 130; % must be at 99
 
 % simulation parameters
 plasmaden = 1.81e14; %cm^-3
@@ -32,8 +32,8 @@ trans_range = 0.0 + [0.0 0.01]; % cm
 trans_lim = trans_range;
 % FFT parameters
 scan_type = 'slice';
-on_axis = 'int';
-xi_range = [20 0];
+on_axis = 'sum';
+xi_range = [21 0.74];
 nslices = 1;
 
 % plotting
@@ -42,13 +42,18 @@ P = Plotty();
 
 for d = 1:length(datadirs)
     datadir = datadirs{d};
-    P.plots_dir = ['tracking/gradsim/',datadir];
-% %     
-%     OPT = OsirisParticleTracking('datadir',datadir,'plasmaden',plasmaden,...
-%         'dataformat','mat',...
-%         'trans_range',trans_range,...
-%         'property','tracks');
-%     OPT.getdata();
+    P.plots_dir = ['gradsim_paper/tracking/gradsim/',datadir];
+
+    OPT = OsirisParticleTracking('datadir',datadir,'plasmaden',plasmaden,...
+        'dataformat','mat',...
+        'trans_range',trans_range,...
+        'property','tracks','trackfile_suffix','_n130',...
+        'track_dataset','q');
+    OPT.getdata();
+    if strcmp(OPT.dataformat,'mat')
+        OPT.track_dataset = 'x'; OPT.direction = 'z'; OPT.getdata();
+        OPT.track_dataset = 'x'; OPT.direction = 'r'; OPT.getdata();
+    end
 
     
     AFFT = AwakeFFT('datadir',datadir,...
@@ -108,30 +113,31 @@ for d = 1:length(datadirs)
         ind_final = ind_r(ind_diff);
         
         
-        par_z = OPT.denorm_distance(OPT.tracks_z(ind_final,1:199)); % z position for particles in the positive region of the cosine from the fft
-        par_r = OPT.denorm_distance(OPT.tracks_r(ind_final,1:199)); % r position for particles in the positive region of the cosine from the fft
+        par_z = OPT.denorm_distance(OPT.tracks_z(ind_final,:)); % z position for particles in the positive region of the cosine from the fft
+        par_r = OPT.denorm_distance(OPT.tracks_r(ind_final,:)); % r position for particles in the positive region of the cosine from the fft
         par_q = OPT.tracks_q(ind_final,1);
+        par_q2 = par_q;%par_q./par_r;
         
         fig1 = figure(1);
         
-        ind_plot = randi([1 size(par_z,1)],[100,1]);
-        
+        ind_plot = randi([1 size(par_z,1)],[150,1]);
+        par_q2mean = mean(par_q2,2);
         p1 = plot(par_z(ind_plot,:)'/100,10*par_r(ind_plot,:)');
         p1colors = get(p1,'color');
-        alpha_q = par_q(ind_plot)/max(par_q(ind_plot));
+        alpha_q = par_q2mean(ind_plot)/max(par_q2mean(ind_plot));
         p1colorsalpha = mat2cell([cell2mat(p1colors),alpha_q],ones(1,length(alpha_q)));
         set(p1,{'color'},p1colorsalpha)
         
-        rave = 10*sum((par_q.*par_r))/sum(par_q);
-        zave = sum((par_q.*par_z))/sum(par_q)/100;
+        rave = 10*sum(par_q2.*par_r)./sum(par_q2);
+        zave = sum(par_q2.*par_z)./sum(par_q2)/100;
 
         hold on
         plot(zave,rave,'r','LineWidth',3);
         hold off
 
-        
-        xlabel('propagation direction (m)');
-        ylabel('transverse direction (mm)');
+        fig1.CurrentAxes.FontSize = 15;
+        xlabel('z (m)');
+        ylabel('r (mm)');
         
         xlim([0 10.28])
         fig1.Units = 'normalized';
@@ -165,7 +171,7 @@ for d = 1:length(datadirs)
     
     ylabel('density profile on axis (1/cm)');
     xlabel('prop. distance (cm)')
-    xlim([1025.5 1030.35]);
+%     xlim([1025.5 1030.35]);
     ylim([0 5e9]);
     
     fig22.Units = 'normalized';

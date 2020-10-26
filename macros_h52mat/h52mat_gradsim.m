@@ -6,12 +6,12 @@
 
 
 
-% datadirs = {'gm20'};
-datadirs = {'gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
+datadirs = {'gp10d2','gp15d2','gm10d2','gm15d2'};
+% datadirs = {'gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
 % diagnostics = {'fields','density','raw'};
 properties = {'density'};
 speciess = {'proton_beam'};
-dump_list = 101:1:134;
+dump_list = 133:1:133;
 
 
 O = OsirisLoader('plasmaden',1.81e14,'dataformat','h5');
