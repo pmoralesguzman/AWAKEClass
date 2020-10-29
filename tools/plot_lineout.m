@@ -14,7 +14,7 @@
 
 % data directory
 datadirs = {'g0'};
-plots_dir = 'fft/rz/grads/g0';
+plots_dir = 'fft/rz/grads/eseed';
 P = Plotty();
 
 
@@ -28,9 +28,9 @@ field = 'e';
 direction = 'z';
 
 % simulation parameters
-dump_list = 1:1:1;
-dataformat = 'h5';
-useAvg = true;
+dump_list = 10:1:11;
+dataformat = 'mat';
+useAvg = false;
 
 % transverse limits
 trans_lims = [0.02];
@@ -64,15 +64,6 @@ for d = 1:length(datadirs)
         
         AFFT.fft_dataload();
         prop_distance_m(n) = AFFT.propagation_distance/100; % propagation distance in m
-
-        
-        switch AFFT.property
-            case 'density'
-                charge_in_slice(:,n) = AFFT.dz*sum(AFFT.fft_densitymatrix,2);
-            case 'fields'
-                field_lineout(:,n) = AFFT.fft_fieldmatrix;
-                data_in_slice = AFFT.fft_powerspectrum_fld;
-        end % switch property
         
         for r = 1:1
                         
@@ -80,7 +71,7 @@ for d = 1:length(datadirs)
             if save_all_plots
                 trans_lims_plot_title = [0,trans_lims];
                 
-                indz = AFFT.z - AFFT.dtime > 7;
+                indz = AFFT.z - AFFT.dtime > 0;
                 z_plot = AFFT.z(indz);
 
 
@@ -96,13 +87,13 @@ for d = 1:length(datadirs)
                     num2str(AFFT.propagation_distance/100,2),'m; r = ',...
                     num2str(trans_lims_plot_title(r+1)*10,2),' mm)']);
                 ylabel('E_z (MV/m)');
-                xlabel('z-ct (m)');
+                xlabel('z (cm)');
                 xlim([z_plot(1),z_plot(end)]);
                 figy.Units = 'normalized';
                 figy.Position = [0.05 0.2 0.9 0.5];
                 drawnow;
                 P.fig_handle = figy;
-                P.save_plot();
+%                 P.save_plot();
 %                 close all;
                 AFFT.progress_dump('save slice field',r,1);
                 

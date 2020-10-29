@@ -15,7 +15,7 @@
 close all;
 
 % file location variables
-datadir = 'R2gap100_2e14';
+datadir = 'gm20';
 dataformat = 'h5';
 useAvg = false;
 dump_list = 102:1:110;

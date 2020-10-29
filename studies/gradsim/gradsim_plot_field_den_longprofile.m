@@ -15,7 +15,7 @@
 % close all;
 
 % file location variables
-datadir = 'gp20d2';
+datadir = 'gm20';
 dataformat = 'mat';
 useAvg = false;
 dump_list = 133:1:133;
@@ -58,7 +58,7 @@ fig_number = 3;
 
 
 % directory to save the plots
-plots_dir = ['gradsim_convergence/field_density_longprofile/',datadir,'/',...
+plots_dir = ['field_density_longprofile/',datadir,'/',...
     property_plot,'/',wakefields_direction,'/',...
     'xi',num2str(round(xi_range(1))),'xi',...
     num2str(round(xi_range(2)))];
@@ -72,15 +72,21 @@ P = Plotty('datadir',datadir,'dataformat',dataformat,...
     'wakefields_direction',wakefields_direction,'species',species,...
     'property_plot',property_plot,'denormalize_flag',denormalize_flag,...
     'make_pause',make_pause,'fig_number',fig_number,...
-    'include_long_profile',true);
+    'include_long_profile',false);
 
 figure(fig_number);
 P.field_density_plot();
 
-% yline(0.868,'r','LineWidth',2)
-% yline(-0.868,'r','LineWidth',2)
+yline(0.2,'r','LineWidth',1)
+yline(0.4,'r','LineWidth',1)
+yline(0.6,'r','LineWidth',1)
+yline(0.8,'r','LineWidth',1)
+yline(1,'r','LineWidth',1)
+yline(1.2,'r','LineWidth',1)
+yline(1.4,'r','LineWidth',1)
+
 % ylim([-1.6,1.6])
 
-
+P.plot_name = 'SimStudent';
 P.save_plot();
 
