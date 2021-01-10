@@ -16,15 +16,15 @@ clear;
 % load('color_purple_to_green.mat');
 
 %% input parameters
-datadirs = {'R2gap0_2e14','R2gap100_2e14'};
+datadirs = {'R2gap0_2e14_nods'};
 
 plasmaden = 2e14;
 dump_list = 0:1:200;
-useAvg = true;
+useAvg = false;
 dataformat = 'h5';
 leg = {'gap = 0 m','gap = 1 m'};
-xi_range = [5.0 6.0];
-dephasing_xi = 5.8;
+xi_range = [-0.1 6.1];
+dephasing_xi = 5.4;
 lineout_point = 3;
 plots_dir = ['gap/energy_gain'];
 plot_name = ['energygain'];
@@ -35,7 +35,7 @@ OPA = OsirisPhaseAnalysis('datadir',datadirs{1},...
     'plasmaden',plasmaden,...
     'dump_list',dump_list,'useAvg',useAvg,...
     'dataformat',dataformat,...
-    'force_waterfall',true,...
+    'force_waterfall',false,...
     'lineout_point',lineout_point,...
     'dephasing_xi',dephasing_xi,'dephasing_search','0x');
 P = Plotty('plasmaden',plasmaden,'plot_name',plot_name,'plots_dir',plots_dir);
@@ -211,11 +211,11 @@ plot(dephasing_z,dephasing_line','LineWidth',2);
 
 hold on
 yline(0,'LineWidth',1)
-yline(-0.25,'LineWidth',1)
+% yline(-0.25,'LineWidth',1)
 hold off
 
-xlim([0 10]);
-ylim([-0.3 0.1])
+% xlim([0 10]);
+% ylim([-0.3 0.1])
 xlabel('propagation (m)')
 ylabel ('phase (\lambda_p)')
 

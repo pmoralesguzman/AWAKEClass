@@ -15,8 +15,8 @@ clear;
 % close all;
 
 % datadirs = {'gm15','gm10','gm5','g0','gp1','gp2','gp5','gp10','gp15'};
-datadirs = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
-% datadirs = {'g0','gp5','gp10','gp15','gp20'};
+% datadirs = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
+datadirs = {'g0'};
 
 load('color_purple_to_green.mat');
 leg = {'-2 %/m','-1.5 %/m','-1 %/m','-0.5 %/m','0 %/m','0.5 %/m','1 %/m','1.5 %/m','2 %/m'};
@@ -43,7 +43,7 @@ dataformat = 'mat';
 amplitudes = cell(length(datadirs),1);
 positions = cell(length(datadirs),1);
 propagations = cell(length(datadirs),1);
-for d = 1:length(datadirs)
+for d = 5:length(datadirs)
     datadir = datadirs{d};
     
     OWA = OsirisWakefieldAnalysis('datadir',datadir,'dump_list',dump_list,...

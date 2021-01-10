@@ -15,10 +15,10 @@
 
 
 % data directory
-datadirs    = {'gm20'};
+datadirs    = {'gp20'};
 dataformat  = 'mat';
 useAvg      = false;
-dump_list   = 0:1:134;
+dump_list   = 132:1:134;
 
 % save directory
 plots_dir = ['gradsim_paper/fft/rz/',datadirs{1},''];
@@ -49,15 +49,15 @@ showChargeinDotSize = true; % show dot size to reflect charge
 
 
 % switches
-plot_powerspectra   = false;
+plot_powerspectra   = true;
 save_all_plots      = false; % no hace nada
 save_plot_flag      = true;
 save_data           = false;
 
 % calculated parameters
-trans_lims = (1:nslices)/nslices*plasma_radius;
-% trans_lims = ...
-%     [0.02387,0.04557,0.06727,0.08897,0.11067,0.13237,0.15407]-0.00217;
+% trans_lims = (1:nslices)/nslices*plasma_radius;
+trans_lims = ...
+    [0.0536*2,0.0536*3]; nslices = 2;
 % nslices = length(trans_lims);
 % initialize variables
 peak_freqs = zeros(nslices,length(dump_list));
@@ -109,7 +109,7 @@ for d = 1:length(datadirs)
     for n = 1:length(dump_list)
         AFFT.dump = dump_list(n);
         
-        AFFT.fft_dataload();
+        AFFT.fft_dataload(true);
         prop_distance_m(n) = AFFT.propagation_distance/100; % propagation distance in m
         
         % calculates fft and gives AFFT.fft_frequencies

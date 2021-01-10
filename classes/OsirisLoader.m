@@ -587,8 +587,19 @@ classdef OsirisLoader < handle
             partialpath_handle = what(obj.partialpath);
             save_partialpath = strrep(partialpath_handle.path,'MS','MAT');
             
+            switch obj.direction
+                case 'z'; temp_direction = '1';
+                case 'r'; temp_direction = '2';
+                case '\theta'; temp_direction = '3';
+            end
+            
+            
+            
             switch obj.property
                 case 'raw'
+                    if strcmp(obj.raw_dataset,'ene') || strcmp(obj.raw_dataset,'q') || strcmp(obj.raw_dataset,'tag')
+                        temp_direction = '';
+                    end
                     attfilename = ['RAW','-',obj.species,'-','attribute','.mat'];
                     if ~isfile([save_partialpath,attfilename])
                         attval = h5readatt(obj.fullpath,'/','NAME');
@@ -610,22 +621,17 @@ classdef OsirisLoader < handle
                     end
                     attpropertyfilename = ['RAW','-',obj.species,'-',obj.raw_dataset,'-attribute','.mat'];
                     if (~strcmp(obj.raw_dataset,'tag')) && (~isfile([save_partialpath,obj.raw_dataset,'/',attpropertyfilename]))
-                        attval = h5readatt(obj.fullpath,['/',obj.raw_dataset],'UNITS');
+                        attval = h5readatt(obj.fullpath,['/',obj.raw_dataset,temp_direction],'UNITS');
                         UNITS = attval{1};
                     end
                     
                 otherwise
-                    time = obj.ntime;
+                    
                     ITER = h5readatt(obj.fullpath,'/','ITER');
                     axis1 = h5read(obj.fullpath,'/AXIS/AXIS1')';
                     axis2 = h5read(obj.fullpath,'/AXIS/AXIS2')';
                     x1_axis = linspace(axis1(1),axis1(2),nx1);
                     x2_axis = linspace(axis2(1),axis2(2),nx2);
-                    switch obj.direction
-                        case 'z'; temp_direction = '1';
-                        case 'r'; temp_direction = '2';
-                        case '\theta'; temp_direction = '3';
-                    end
                     switch obj.property
                         case 'fields'
                             attfilename = [obj.property,avg,'-','attribute','.mat'];
@@ -658,6 +664,7 @@ classdef OsirisLoader < handle
                         AXIS2_TYPE = attval{1};
                     end
             end
+            time = obj.ntime;
             save_fullpath = strrep(which(obj.fullpath),'MS','MAT');
             save_fullpath = strrep(save_fullpath,'h5','mat');
             
@@ -666,10 +673,10 @@ classdef OsirisLoader < handle
                     if ~isfolder(save_partialpath)
                         mkdir(save_partialpath)
                     end
-                    switch obj.property
+                    switch obj.property % don't erase this one, should be like this
                         case 'fields'; fields = data_save;
                         case 'density'; density = data_save;
-                        case 'phasespace'; phasespace = data_save;     
+                        case 'phasespace'; phasespace = data_save;
                     end
                     save(save_fullpath,...
                         obj.property,'ITER','time','axis1','axis2','x1_axis','x2_axis','-v6');
@@ -679,11 +686,12 @@ classdef OsirisLoader < handle
                             'CHARGE_UNITS','AXIS1_UNITS','AXIS1_TYPE','AXIS2_UNITS','AXIS2_TYPE');
                     end
                 case 'raw'
-                    savepath = [save_partialpath,'/',obj.raw_dataset,'/'];
+                    savepath = [save_partialpath,'/',obj.raw_dataset,temp_direction,'/'];
                     if ~isfolder(savepath)
                         mkdir(savepath)
                     end
-                    filename = ['RAW','-',obj.species,'-',obj.raw_dataset,'-',ndump_char,'.mat'];
+                    dump_char = sprintf('%06.6d',obj.dump);
+                    filename = ['RAW','-',obj.species,'-',obj.raw_dataset,temp_direction,'-',dump_char,'.mat'];
                     rawdata = data_save;
                     save([savepath,filename],'rawdata','time','-v6');
                     if ~isfile([save_partialpath,attfilename])
@@ -702,32 +710,6 @@ classdef OsirisLoader < handle
     
     
     methods(Static)
-        
-        function CreatePath
-            % Create path where all studies and files are.
-            
-            % Since creating the path can take a while (few seconds),
-            % it checks if directores are already on path first.
-            
-            pathCell = regexp(path, pathsep, 'split');
-            
-            paths = {'../../AWAKE_Class',... all directories with analysis code
-                'E:/AWAKE_Data',... for the external hard drive (must be set to E:/)
-                'D:/AWAKE_Data_HD',... for the hard drive in the work laptop
-                'C:/AWAKE_Data_laptop',... for the hard drive in the personal laptop
-                '../simulations'... for the server
-                % add yours
-                };
-            
-            for pp = 1:length(paths)
-                if ispc && ~any(strcmpi(paths{pp}, pathCell))  % Windows is not case-sensitive
-                    addpath(genpath(paths{pp}))
-                elseif (~ispc) && ~any(strcmp(paths{pp}, pathCell))
-                    addpath(genpath(paths{pp}))
-                end
-            end % paths
-            
-        end % CreatePath
         
         function progress_dump(ptext,n,total)
             fprintf([ptext,': %.d / %.d \n'],n,total);
@@ -771,9 +753,9 @@ classdef OsirisLoader < handle
             end % switch integral type
         end % cylindrical_integration
         
-        function new_r = charge_pusher(OD,distance)
+        function new_r = charge_pusher(OD,prop_distance)
             
-            norm_time = OD.norm_distance(distance);
+            norm_time = OD.norm_distance(prop_distance);
             
             vel = OD.npr_raw./(OD.nE_raw+1);
             new_r = abs(OD.nr_raw + vel.*norm_time);

@@ -6,8 +6,8 @@
 
 
 
-datadirs = {'R2gap0_2e14'};
-properties = {'density','fields'};
+datadirs = {'R2gap0_2e14','R2gap100_2e14','R2gap0g5','R2gap0_2e14_nods'};
+properties = {'density','fields','raw'};
 speciess = {'proton_beam'};
 dump_list = 0:1:200;
 

@@ -13,8 +13,8 @@
 %________________________________________________________________________
 
 
-datadirs = {'gp5','gp10','gp15','gp20'};
-datadirs = {'R2gap0_2e14'};
+datadirs = {'gp20'};
+% datadirs = {'R2gap0_2e14'};
 plasmaden = 2e14;
 dump_list = 0:1:200;
 useAvg = true;

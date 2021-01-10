@@ -104,7 +104,7 @@ for ph = 1:length(dephasing_xis)
     xlabel('z (m)')
     legend('1','2','3','4','5','Location','best')
     xlim([0 10])
-    % ylim([-6 1]);
+%     ylim([-6 1]);
     title(['\xi = ',num2str(dephasing_xi),' cm behind seed. pos.'])
     
 end

@@ -12,14 +12,13 @@
 % Last update: 08/06/2020
 %________________________________________________________________________
 
-
 % data directory
 % datadirs = {'gm20'};
 datadirs = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
-datadirs = {'R2gap0_2e14'};
+datadirs = {'gp20'};
 % parameters
 plasma_density = 1.81e14;
-plasma_density = 2e14; % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+% plasma_density = 2e14; % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 % properties
 property = 'density';
@@ -29,12 +28,12 @@ direction = 'z';
 
 % simulation parameters
 dump_list = 0:1:133;
-dataformat = 'mat';
-useAvg = false;
+dataformat = 'h5';
+useAvg = true;
 
 % limits
 nslices = 1;
-xi_range = [21 0.74];
+xi_range = [18 9];
 
 % analysis parameters
 scan_type = 'cumulative'; % slice, cumulative
@@ -46,7 +45,7 @@ showChargeinDotSize = false; % show dot size to reflect charge
 
 % switches
 plot_powerspectra = false;
-saveplots = true;
+saveplots = false;
 
 % calculated parameters
 trans_lims = 0.01;
@@ -64,7 +63,7 @@ for d = 1:length(datadirs)
     datadir = datadirs{d};
     
     switch datadir
-        case 'gp20'
+        case {'gp20','gp20d2'}
             title_g = 'g = +2 %/m';
             grad_sim = 0.02;
         case 'gp15'
@@ -95,33 +94,40 @@ for d = 1:length(datadirs)
             title_g = 'density step';
     end % switch datadir
     
+    AFFT = AwakeFFT('datadir',datadir,...
+        'plasmaden',plasma_density,'property','density','species',species,...
+        'direction',direction,'wakefields_direction','long',...
+        'dump',dump_list(1),'dataformat',dataformat,'useAvg',useAvg,...
+        'trans_lims',trans_lims,'xi_range',xi_range,...
+        'scan_type',scan_type,'on_axis',on_axis);
+    
+    AFFT.fft_dataload(true);
+    AFFT.get_fft();
+    
+    freq_ind = ((AFFT.fft_frequencies*1e-9)/AFFT.plasmafreq_GHz > 0.89) & (AFFT.fft_frequencies*1e-9/AFFT.plasmafreq_GHz < 1.1);
+    
+    powerspectra_den = zeros(sum(freq_ind),length(dump_list));
+    powerspectra_fld = powerspectra_den;
+    
     for n = 1:length(dump_list)
         
-        AFFT = AwakeFFT('datadir',datadir,...
-            'plasmaden',plasma_density,'property',property,'species',species,...
-            'direction',direction,'wakefields_direction','long',...
-            'dump',dump_list(n),'dataformat',dataformat,'useAvg',useAvg,...
-            'trans_lims',trans_lims,'xi_range',xi_range,...
-            'scan_type',scan_type,'on_axis',on_axis);
+        AFFT.dump = dump_list(n);
+        AFFT.property = 'density';
+        AFFT.trans_lims = trans_lims;
         
-        AFFT.fft_dataload();
+        AFFT.fft_dataload(true);
         prop_distance_m(n) = AFFT.propagation_distance/100; % propagation distance in m
         
         % calculates fft and gives AFFT.fft_frequencies
         % and AFFT.fft_powerspectrum (_den or _fld)
         AFFT.get_fft();
         
-        switch AFFT.property
-            case 'density'
-                charge_in_slice(:,n) = AFFT.dz*sum(AFFT.fft_densitymatrix,2);
-                data_in_slice = AFFT.fft_powerspectrum_den;
-            case 'fields'
-                data_in_slice = AFFT.fft_powerspectrum_fld;
-        end % switch property
+        charge_in_slice(:,n) = AFFT.dz*sum(AFFT.fft_densitymatrix,2);
+        powerspectra_den(:,n) = AFFT.fft_powerspectrum_den(freq_ind);
         
         for r = 1:nslices
             
-            AFFT.fft_peaks(data_in_slice(r,:));
+            AFFT.fft_peaks(AFFT.fft_powerspectrum_den(r,:));
             % maxloc is the location in freq space of the ampltiude peak in
             % the power spectrum
             if isempty(AFFT.maxloc)
@@ -134,36 +140,29 @@ for d = 1:length(datadirs)
         
         
         AFFT.property = 'fields';
-        AFFT.trans_lims = 0.005;
-        if dump_list(n) <= 200
-        AFFT.fft_dataload();
-        prop_distance_m(n) = AFFT.propagation_distance/100; % propagation distance in m
-        
-        % calculates fft and gives AFFT.fft_frequencies
-        % and AFFT.fft_powerspectrum (_den or _fld)
-        AFFT.get_fft();
-        
-        switch AFFT.property
-            case 'density'
-                charge_in_slice(:,n) = AFFT.dz*sum(AFFT.fft_densitymatrix,2);
-                data_in_slice = AFFT.fft_powerspectrum_den;
-            case 'fields'
-                data_in_slice = AFFT.fft_powerspectrum_fld;
-        end % switch property
-        
-        for r = 1:nslices
+        AFFT.trans_lims = 0.145;
+        if dump_list(n) <= 100 % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            AFFT.fft_dataload(true);
+            prop_distance_m(n) = AFFT.propagation_distance/100; % propagation distance in m
             
-            AFFT.fft_peaks(data_in_slice(r,:));
-            % maxloc is the location in freq space of the ampltiude peak in
-            % the power spectrum
-            if isempty(AFFT.maxloc) 
-                peak_freqs_fld(r,n) = 0;
-            else
-                peak_freqs_fld(r,n) = AFFT.maxloc;
+            % calculates fft and gives AFFT.fft_frequencies
+            % and AFFT.fft_powerspectrum (_den or _fld)
+            AFFT.get_fft();
+            
+            powerspectra_fld(:,n) = AFFT.fft_powerspectrum_fld(freq_ind);
+            
+            for r = 1:nslices
+                
+                AFFT.fft_peaks(AFFT.fft_powerspectrum_fld(r,:));
+                % maxloc is the location in freq space of the ampltiude peak in
+                % the power spectrum
+                if isempty(AFFT.maxloc)
+                    peak_freqs_fld(r,n) = 0;
+                else
+                    peak_freqs_fld(r,n) = AFFT.maxloc;
+                end
             end
-        end
-        
-        
+            
         end
         AFFT.progress_dump('frequency',n,length(dump_list))
     end %  for dump list
@@ -180,7 +179,7 @@ for d = 1:length(datadirs)
     peak_freqs_fld_plot = peak_freqs_fld;
     peak_freqs_fld_plot(peak_freqs_fld/(AFFT.plasmafreq_GHz) < low_freqrange) = nan;
     peak_freqs_fld_plot(peak_freqs_fld/(AFFT.plasmafreq_GHz) > upp_freqrange) = nan;
-%     
+    %
     
     %%
     figure
@@ -192,14 +191,14 @@ for d = 1:length(datadirs)
     scatter(prop_distance_m_mat,peak_freqs_den_plot./AFFT.plasmafreq_GHz,...
         'filled')
     scatter(prop_distance_m_mat,peak_freqs_fld_plot./AFFT.plasmafreq_GHz,...
-        'filled')
+        'd','filled')
     plasmafreq_ini = AFFT.plasmafreq_GHz;
-%     AFFT.plasmaden = plasma_density*(1+grad_sim*prop_distance_m_mat(prop_distance_m_mat < 20)); % !!!!!!!!!!!!!!!!!!!!
-    plasmaden_ds = zeros(134,1);
-    plasmaden_ds(1:16) = 1*plasma_density;
-    plasmaden_ds(16:17) = [1,1.1]*plasma_density;
-    plasmaden_ds(17:end) = 1.1*plasma_density;
-    AFFT.plasmaden = plasmaden_ds; 
+    AFFT.plasmaden = plasma_density*(1+grad_sim*prop_distance_m_mat(prop_distance_m_mat < 20)); % !!!!!!!!!!!!!!!!!!!!
+    %     plasmaden_ds = zeros(134,1);
+    %     plasmaden_ds(1:16) = 1*plasma_density;
+    %     plasmaden_ds(16:17) = [1,1.1]*plasma_density;
+    %     plasmaden_ds(17:end) = 1.1*plasma_density;
+    %     AFFT.plasmaden = plasmaden_ds;
     AFFT.den2freq();
     fpe_plot = AFFT.plasmafreq_GHz/plasmafreq_ini;
     plot(prop_distance_m_mat(prop_distance_m_mat < 13.5),fpe_plot,'LineWidth',2) % !!!!!!!!!!!!!!!!!!!!
@@ -211,12 +210,11 @@ for d = 1:length(datadirs)
     drawnow;
     P = Plotty('plots_dir',['gradsim_paper/fft/fz/',datadir],'plot_name','fvszbothzoom');
     P.fig_handle = gcf;
-%     P.save_plot();
+    %     P.save_plot();
     
-%     ylim([0.98*min(peak_freqs_den_plot./AFFT.plasmafreq_GHz),...
-%         1.02*max(peak_freqs_den_plot./AFFT.plasmafreq_GHz)])
-    ylim([0.89,...
-        1.1])
+    %     ylim([0.98*min(peak_freqs_den_plot./AFFT.plasmafreq_GHz),...
+    %         1.02*max(peak_freqs_den_plot./AFFT.plasmafreq_GHz)])
+    ylim([0.89,1.1])
     
     xlabel('z (m)')
     ylabel('frequency / plasma frequency at z = 0')
@@ -226,10 +224,28 @@ for d = 1:length(datadirs)
     legend('microbunch freq.','wakefields freq.','plasma freq.','location','best')
     %     legend('microbunch freq.','plasma freq.')
     drawnow;
-    P = Plotty('plots_dir',['gradsim_paper/fft/fz/',datadir],'plot_name','fvszboth133');
+    P = Plotty('plots_dir',['gradsim_test/fft/fz/',datadir],'plot_name','fvszboth133xx');
     P.fig_handle = gcf;
     P.save_plot();
-%     close
+    %     close
+    
+    figure % waterfall density
+    imagesc(prop_distance_m,AFFT.fft_frequencies(freq_ind)*1e-9/AFFT.plasmafreq_GHz,powerspectra_den);
+    title('microbunch density')
+    ylabel('norm. frequencies')
+    xlabel('z (m)')
+    set(gca,'YDir','normal')
+    colorbar;
+    
+    figure % waterfall fields
+    imagesc(prop_distance_m,AFFT.fft_frequencies(freq_ind)*1e-9/AFFT.plasmafreq_GHz,powerspectra_fld);
+    title('longitudinal wakefields')
+    ylabel('norm. frequencies')
+    xlabel('z (m)')
+    set(gca,'YDir','normal')
+    colorbar;
+    
+    
 end % for datadirs
 
 

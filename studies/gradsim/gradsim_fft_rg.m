@@ -31,7 +31,7 @@ dump        = 133;
 
 
 % save directory
-plots_dir           = ['gradsim_paper/fft/rg/',''];
+plots_dir           = ['AAC/fft/rg/',''];
 plot_name_suffix    = [''];
 save_format         = {'png','eps','fig'};
 
@@ -58,7 +58,7 @@ showChargeinDotSize = true; % show dot size to reflect charge
 
 
 % switches
-plot_powerspectra   = true;
+plot_powerspectra   = false;
 save_plot_flag      = true;
 normalized_frequency_switch = true;
 
@@ -69,6 +69,9 @@ trans_lims      = [0.0868 0.2604];
 % last exp limit 2.604 mm
 % theo radius at plasma exit = 0.0455, 0.0455*1.3152 = 0.0598 cm (not used
 % anymore)
+
+% colors
+lincolngreen = [20,82,20]/256;
 
 % initialize variables
 peak_freqs = zeros(nslices,length(dump));
@@ -182,24 +185,26 @@ if normalized_frequency_switch
     marker_size = 10;
     % simulation
     plot_sim(1) = plot(grads_sim,... % narrow trans. range
-        peak_freqs_plot(1,:)/AFFT.plasmafreq_GHz,'o','markerSize',marker_size);
-    set(plot_sim(1), 'markerfacecolor', get(plot_sim(1), 'color'));
+        peak_freqs_plot(1,:)/AFFT.plasmafreq_GHz,'-o','markerSize',marker_size);
+    set(plot_sim(1), 'markerfacecolor', get(plot_sim(1), 'color'),'LineWidth',2);
     plot_sim(2) = plot(grads_sim,... % wide trans. range
-        peak_freqs_plot(2,:)/AFFT.plasmafreq_GHz,'s','markerSize',marker_size);
-    set(plot_sim(2), 'markerfacecolor', get(plot_sim(2), 'color'));
+        peak_freqs_plot(2,:)/AFFT.plasmafreq_GHz,'-s','markerSize',marker_size);
+    set(plot_sim(2), 'markerfacecolor', get(plot_sim(2), 'color'),'LineWidth',2);
     
     % experiment
     plot_exp(1) = plot(grads_exp,... % narrow trans. range
-        freqs_exp(:,4)/AFFT.plasmafreq_GHz,'^','markerSize',marker_size,'LineWidth',2);
+        freqs_exp(:,4)/AFFT.plasmafreq_GHz,'-^','markerSize',marker_size,'LineWidth',2,...
+        'color',lincolngreen);
     plot_exp(2) = plot(grads_exp,... % wide trans. range
-        freqs_exp(:,3)/AFFT.plasmafreq_GHz,'d','markerSize',marker_size,'LineWidth',2);
+        freqs_exp(:,3)/AFFT.plasmafreq_GHz,'-d','markerSize',marker_size,'LineWidth',2);
     
     ylim(freq_range/AFFT.plasmafreq_GHz)
     
-    ylabel({'microbunch train frequency /','plasma frequency at z = 0 m'})
+    ylabel({'normalized microbunch train frequency (a. u.)'})
     
     legend([plot_sim(1) plot_sim(2) plot_exp(1) plot_exp(2)],...
-        'Sim. narrow','Sim. wide','Exp. narrow','Exp. wide',...
+        'Simulation narrow window','Simulation wide window',...
+        'Experiment narrow window','Experiment wide window',...
         'location','southeast','AutoUpdate','off');
     
     ax_handle = gca;

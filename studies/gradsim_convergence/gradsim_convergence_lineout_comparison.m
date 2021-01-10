@@ -15,10 +15,12 @@
 close all;
 
 % file location variables
-datadirs = {'gm5','gm5d2'};
+datadirs = {'g0z2','g0r2','g0'};
+% datadirs = {'g0zh','g0rh','g0'};
+
 dataformat = 'mat';
 useAvg = false;
-dump_list = 133:1:133;
+dump_list = 100:1:100;
 
 % saving data
 save_flag = false;
@@ -34,7 +36,7 @@ wakefields_direction = 'long'; % trans, long
 species = 'proton_beam';
 
 % choose limits (in cm, must denormalize)
-trans_range = [0 0.066];
+trans_range = [0 0.0536];
 xi_range = [21 0];
 lineout_point = 5;
 
@@ -60,7 +62,7 @@ plots_dir = ['gradsim_convergence/','lineoutcompare/',datadirs{1},'/',...
 
 for n = 1:length(dump_list)
 
-P = Plotty('datadir',datadirs{1},'dataformat',dataformat,...
+P = Plotty('datadir',datadirs{1},'dataformat','h5',...
     'useAvg',useAvg,'dump_list',dump_list(n),...
     'save_flag',save_flag,'save_format',save_format,'plots_dir',plots_dir,...
     'create_movie',create_movie,...
@@ -71,7 +73,7 @@ P = Plotty('datadir',datadirs{1},'dataformat',dataformat,...
 
 P.lineout_plot();
 
-P = Plotty('datadir',datadirs{2},'dataformat',dataformat,...
+P = Plotty('datadir',datadirs{2},'dataformat','h5',...
     'useAvg',useAvg,'dump_list',dump_list(n),...
     'save_flag',save_flag,'save_format',save_format,'plots_dir',plots_dir,...
     'create_movie',create_movie,...
@@ -99,11 +101,12 @@ P.lineout_plot();
 hold off
 end
 
-legend(datadirs{:})
+legend(datadirs{:},'location','best')
 P.save_flag = true;
-P.plot_name = ['lineout_comp_gm20','n',num2str(n)];
+P.plot_name = ['lineout_comp','n',num2str(n)];
 P.fig_handle = gcf;
-title(['propagation dist. = ' num2str(P.propagation_distance/100),' m',' (r = 0.05/k_p)']); 
+ylabel('sum of density on axis')
+title(['propagation dist. = ' num2str(P.propagation_distance/100),' m',' (r = [0,0.536] mm)']); 
 P.save_plot();
 end
 

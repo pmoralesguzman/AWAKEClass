@@ -105,16 +105,18 @@ classdef AwakeFFT < handle & OsirisDenormalizer
             
         end % constructor
         
-        function obj = fft_dataload(obj)
+        function obj = fft_dataload(obj,load_switch)
             
-            %load the data according to input
-            obj.getdata();
-            
-            % trim the data
-            obj.trim_data(); % zr axes already denorm; data is automatically assigned
-            
-            obj.denorm_Efield();
-            obj.denorm_density();
+            if load_switch
+                %load the data according to input
+                obj.getdata();
+                
+                % trim the data
+                obj.trim_data(); % zr axes already denorm; data is automatically assigned
+                
+                obj.denorm_Efield();
+                obj.denorm_density();
+            end
             
             obj.fft_densitymatrix = zeros(length(obj.trans_lims),length(obj.z));
             obj.fft_fieldmatrix = zeros(length(obj.trans_lims),length(obj.z));
@@ -123,7 +125,7 @@ classdef AwakeFFT < handle & OsirisDenormalizer
                 
                 switch obj.scan_type
                     case 'cumulative'
-                        ir = obj.r < obj.trans_lims(r);
+                        ir = abs(obj.r) < obj.trans_lims(r);
                     case 'slice'
                         if (r == 1) %&& (obj.trans_lims(1)~=0)
                             trans_lims_slice = [0,obj.trans_lims];
@@ -299,7 +301,7 @@ classdef AwakeFFT < handle & OsirisDenormalizer
                 warning('Units not cm. get_fft works correctly only for cm. Double check.')
             end % if units
             
-            Fs = L/(obj.z(end)-obj.z(1))*obj.c_cm; %
+            Fs = L/(max(obj.z)-min(obj.z))*obj.c_cm; %
             obj.fft_frequencies = Fs*(0:(nzero/2))/nzero;
             
             

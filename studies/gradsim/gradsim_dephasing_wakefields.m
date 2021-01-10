@@ -16,17 +16,17 @@
 clear;
 close all;
 % datadirs = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
-datadirs = {'gp20'};
+datadirs = {'g0'};
 
 plasmaden = 1.81e14;
 property = 'fields';
 dump_list = 0:100;
-useAvg = true;
-dataformat = 'h5';
+useAvg = false;
+dataformat = 'mat';
 
 trans_range = [0 0.02]; % if density
-dephasing_xis = [1,1.5,2,3,4,5,6,7]; % cm
-% dephasing_xis = 14;
+% dephasing_xis = [1,1.5,2,3,4,5,6,7]; % cm
+dephasing_xis = 2;
 dephasing_search = '0x'; % 0x, max
 force_waterfall = false;
 
@@ -74,7 +74,8 @@ for ph = 1:length(dephasing_xis)
         
         P1.fig_number = 10+d;
         P1.waterfall_plot();
-        x_range = dephasing_xi+[-1 1];
+%         x_range = dephasing_xi+[-1 1];
+        x_range = [0 2.5];
         xlim(x_range);
         ind_x = fliplr((OPA.waterfall_xi < x_range(2)) & (OPA.waterfall_xi > x_range(1)));
         colormap_low = min(OPA.waterfall_mat(:,ind_x),[],'all');
@@ -84,45 +85,56 @@ for ph = 1:length(dephasing_xis)
         ax = imgca(P1.fig_handle);
         
         % load line from the microbunches for double plotting
-        phase_filename = ['save_files/phases/phase_',datadir,'_',num2str(dephasing_xi),'.mat'];
-        bunches = load(phase_filename);
-        bunches_x = bunches.phase_x_plot;
-        bunches_y = bunches.phase_y_plot;
+%         phase_filename = ['save_files/phases/phase_',datadir,'_',num2str(dephasing_xi),'.mat'];
+%         bunches = load(phase_filename);
+%         bunches_x = bunches.phase_x_plot;
+%         bunches_y = bunches.phase_y_plot;
         
         % add the dephasing line (zero-crossing or max) to the waterfall plot
         hold on
         plot((-OPA.dephasing_line)*OPA.plasma_wavelength+OPA.simulation_window-OPA.dephasing_first,...
             linspace(OPA.waterfall_z(1),OPA.waterfall_z(2),length(OPA.dephasing_line)),...
             'LineWidth',2,'Parent',ax,'color','k')
-        plot(bunches_x,bunches_y,'LineWidth',2,'Parent',ax,'color',[1, 0, 0])
+        %         plot(bunches_x,bunches_y,'LineWidth',2,'Parent',ax,'color',[1, 0, 0])
         ax.XDir = 'reverse';
         ax.YDir = 'normal';
-        title(['\xi = ',num2str(dephasing_xi),' cm behind seed. pos. (',datadir,')'])
+        switch datadir
+            case 'g0'
+              title({'waterfall plot of longitudinal wakefields on axis','constant density'})
+            case 'gp20'
+        %         title(['\xi = ',num2str(dephasing_xi),' cm behind seed. pos. (',datadir,')'])
+        title(['positive gradient = +2 %/m'])
+            case 'gm20'
+               title(['negative gradient = -2 %/m'])
+
+        end
         hold off
+        P1.fig_handle.Units = 'normalized';
+        P1.fig_handle.OuterPosition = [0 0.1 0.25 0.4];
         drawnow;
         P1.plot_name = ['gradsim_field_',datadir,'_',num2str(dephasing_xi)]; % PLOT NAME
         P1.save_plot();
         
         % just the dephasing line, holds the figure for the next datadir
-        fig1 = figure(1);
-        colororder(cc);
-        hold on
-        p1 = plot(linspace(OPA.waterfall_z(1),OPA.waterfall_z(2),length(OPA.dephasing_line)),...
-            OPA.dephasing_line,'LineWidth',2);
-        hold off
+        %         fig1 = figure(1);
+%         colororder(cc);
+%         hold on
+%         p1 = plot(linspace(OPA.waterfall_z(1),OPA.waterfall_z(2),length(OPA.dephasing_line)),...
+%             OPA.dephasing_line,'LineWidth',2);
+%         hold off
         
     end
     % labels for the dephasing lines
-    ylabel('phase (\lambda_p)')
-    xlabel('propagation distance (m)')
-    legend('gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20','Location','best')
-    xlim([0 10])
-    % ylim([-6 1]);
-    title(['\xi = ',num2str(dephasing_xi),' cm behind seed. pos.'])
-    
-    P2.plot_name = ['gradsim_dephasing_fields_',num2str(dephasing_xi)]; % PLOT NAME
-    P2.fig_handle = fig1;
-    P2.save_plot();
+%     ylabel('phase (\lambda_p)')
+%     xlabel('propagation distance (m)')
+%     legend('gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20','Location','best')
+%     xlim([0 10])
+%     % ylim([-6 1]);
+%     title(['\xi = ',num2str(dephasing_xi),' cm behind seed. pos.'])
+%     
+%     P2.plot_name = ['gradsim_dephasing_fields_',num2str(dephasing_xi)]; % PLOT NAME
+%     P2.fig_handle = fig1;
+%     P2.save_plot();
 
 end
 

@@ -14,12 +14,13 @@
 clear;
 
 % data directory
-datadirs = {'gm20','gm20d2','gm20d3'};
+datadirs = {'g0zh','g0rh','g0','g0z2','g0r2','g0dt92'};
 % datadirs = {'gm20','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
+markers = ['+*oxsp'];
 
 % simulation parameters
-dump = 133;
-dataformat = 'mat';
+dump = 100;
+dataformat = 'h5';
 useAvg = false;
 use_raw = false;
 
@@ -32,14 +33,13 @@ direction = 'z';
 
 
 % limits
-plasma_radius = 0.16; % cm
-xi_range = [21 0.0]; % cm
+xi_range = [21 0.75]; % cm
 
-trans_lims = 0.005:0.01:plasma_radius;
+trans_lims = [0.018]*(1:8);
 
 % analysis parameters
 scan_type = 'slice'; % slice, cumulative
-on_axis = 'int'; % int, sum, intw, lineout
+on_axis = 'sum'; % int, sum, intw, lineout
 max_dotsize = 2*360;
 showChargeinDotSize = false; % show dot size to reflect charge
 
@@ -57,7 +57,15 @@ AFFT = AwakeFFT(...
 
 
 for d = 1:length(datadirs)
-%     close;
+    %     close;
+    
+    switch datadirs{d}
+        case 'g0'
+            dataformat = 'mat';
+        otherwise
+            dataformat = 'h5';
+    end
+    AFFT.dataformat = dataformat;
     datadir = datadirs{d};
     nslices = length(trans_lims);
     AFFT.datadir = datadir;
@@ -67,7 +75,7 @@ for d = 1:length(datadirs)
     if use_raw
         AFFT.fft_rawdataload();
     else
-        AFFT.fft_dataload();
+        AFFT.fft_dataload(true);
     end
     prop_distance_m = AFFT.propagation_distance/100; % propagation distance in m
     
@@ -100,18 +108,18 @@ for d = 1:length(datadirs)
         
     end % for nslices
     
-    % Calculate DFT for whole range
-    AFFT.scan_type = 'cumulative';
-    AFFT.on_axis = 'int';
-    AFFT.trans_lims = plasma_radius; %three experimental sigmas at the end of the plasma 3*0.455
-    if use_raw
-        AFFT.fft_rawdataload();
-    else
-        AFFT.fft_dataload();
-    end
-    AFFT.get_fft();
-    AFFT.fft_peaks(AFFT.fft_powerspectrum_den);
-    freq_widerange = AFFT.maxloc;
+%     % Calculate DFT for whole range
+%     AFFT.scan_type = 'cumulative';
+%     AFFT.on_axis = 'int';
+%     AFFT.trans_lims = plasma_radius; %three experimental sigmas at the end of the plasma 3*0.455
+%     if use_raw
+%         AFFT.fft_rawdataload();
+%     else
+%         AFFT.fft_dataload(true);
+%     end
+%     AFFT.get_fft();
+%     AFFT.fft_peaks(AFFT.fft_powerspectrum_den);
+%     freq_widerange = AFFT.maxloc;
     
     if showChargeinDotSize
         dotsize = max_dotsize*charge_in_slice/max(charge_in_slice,[],'all');
@@ -128,9 +136,11 @@ for d = 1:length(datadirs)
     hold on
     
     if normalized_frequency_switch
-        scatter(trans_lims_mm,...
-            peak_freqs/AFFT.plasmafreq_GHz,dotsize,'filled');
-        plot(xlimits,freq_widerange*ones(1,2)/AFFT.plasmafreq_GHz,'--b','LineWidth',2);
+%         scatter(trans_lims_mm,...
+%             peak_freqs/AFFT.plasmafreq_GHz,dotsize,'filled');
+         plot(trans_lims_mm,...
+            peak_freqs/AFFT.plasmafreq_GHz,['-.',markers(d)],'MarkerSize',8,'LineWidth',2);
+%         plot(xlimits,freq_widerange*ones(1,2)/AFFT.plasmafreq_GHz,'--b','LineWidth',2);
         freq_lims = [0.98*min([peak_freqs]/AFFT.plasmafreq_GHz),...
             1.02*max([peak_freqs]/AFFT.plasmafreq_GHz)];
         ylim(freq_lims)
@@ -149,15 +159,18 @@ for d = 1:length(datadirs)
     xlabel('r (mm)')
     drawnow;
    
-    if saveplots
-        plots_dir = ['convergence/fft/r/grads/',num2str(dump),''];
-        plot_name = ['fvsr',datadir];
-        P = Plotty('plasmaden',plasma_density,'plots_dir',plots_dir,'plot_name',plot_name,...
-            'fig_handle',fig_fvsr);
-        P.save_plot();
-    end
+
     
 end % for datadirs
+legend(datadirs,'location','best')
+if saveplots
+    plots_dir = ['convergence/fft/r/grads/',num2str(dump),''];
+    plot_name = ['fvsr','g0'];
+    P = Plotty('plasmaden',plasma_density,'plots_dir',plots_dir,'plot_name',plot_name,...
+        'fig_handle',fig_fvsr);
+    P.save_plot();
+end
+
 
 
 

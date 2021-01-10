@@ -80,7 +80,16 @@ for xi = 1:length(dephasing_xi)
     yline(-1,'--','LineWidth',1,'color',[0 0.4470 0.7410])
     xline(4,'--','LineWidth',1,'color',[0 0.4470 0.7410]);
     hold off
-    title(['\xi_0 = ',num2str(dephasing_xi(xi)),' cm']);
+    
+    switch dephasing_xi(xi)
+        case 15
+            position_word = '(back of the bunch)';
+        case 7
+            position_word = '(middle of the bunch)';
+        case 1
+            position_word = '(front of the bunch)';
+    end
+    title(['\xi_0 = ',num2str(dephasing_xi(xi)),' cm ',position_word]);
     
     xlim([0 10])
     ylim([-6.5 0.5])

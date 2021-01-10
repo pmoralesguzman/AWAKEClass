@@ -16,6 +16,9 @@ clear;
 % close all;
 % load experimental data from Tatiana
 
+blue = [47, 102, 169]/256;
+red = [255, 64, 49]/256;
+
 % charge_exp    = load('totalcharge_exp.txt');
 % errorbars_exp = load('errorbars_totalcharge_exp.txt');
 
@@ -46,7 +49,7 @@ plasma_density  = 1.81e14;
 % plasma parameters
 seeding_position    = 3.8074; % (127) ps ps*1e-12*O.c_cm
 sigma_z             = 6.98516; % cm
-sigma_exp           = 0.001; % cm 0.0536
+sigma_exp           = 0.0536; % cm 0.0536, beta = 0.02*srqt(1+12^2/4.9^2) = 0.0529
 exp_upperlimit      = sigma_exp;
 
 % analysis
@@ -56,7 +59,7 @@ limitr      = 1; %linspace(1,100,99)/100*3;
 % switches
 do_cvsr             = false; % flag to do individual c vs r plots
 save_all_plots      = false;
-save_plot_flag      = false;
+save_plot_flag      = true;
 
 % calculated variables
 trans_limit = sigma_exp*limitr; % trans. limit in cm
@@ -122,17 +125,40 @@ if length(trans_limit) == 1 % if only one radius is chosen, plot both on the sam
     fig_cvsg = figure;
     [~,indr_exp] = min(abs(trans_limit-exp_r));
     plot_exp = errorbar(grads_exp/10,charge_exp(indr_exp,:),errorbars_exp(indr_exp,:),...
-        's','MarkerFaceColor','auto','MarkerSize',marker_size); %    DATA
+        's','MarkerSize',marker_size,'Color',blue); %    DATA
+    set(plot_exp, 'MarkerFaceColor', get(plot_exp,'Color'))
     hold on
-    plot_sim = plot(grads_sim/10,sim_charge,'o','MarkerSize',marker_size); % SIM
+    plot_sim = plot(grads_sim/10,sim_charge,'o','MarkerSize',marker_size,'Color',red); % SIM
     set(plot_sim, 'MarkerFaceColor', get(plot_sim,'Color'))
+    p1 = plot(grads_exp/10,0.5595/93394892.27646959*[80703992.52017055 , 68925947.82344057 , 75240015.91677196 , 93394892.27646959 , 138102471.82438824 , 163936581.1924591 , 182302159.40055966 , 221130760.18843037],...
+        'hm');
+    p2 = plot(grads_exp/10,0.5595/10268414.871418467*[9179849.047179596, 8423956.737214955, 8853881.912626276, 10268414.871418467, 13686601.622400615, 15783961.96087067, 17334177.540318232, 20445446.223657124],...
+        'pk');
+    
     hold off
-    legend([plot_sim(1) plot_exp(1)],'simulation','exp. data \pm std. dev.','location','northwest');
+    legend([plot_sim(1) plot_exp(1) p1 p2],'Simulation','Experiment','SC charge','SC counts','location','northwest');
+    % 'Experiment \pm std. dev.'
     grid on
     xlabel('density gradient (%/m)')
     ylabel('charge fraction (a.u.)')
     xlim([-2.2,2.2])
     %     ylim([0 0.85])
+    
+    
+%     % experiment
+%     x2 = [0.35,0.5];
+%     y2 = [0.7,0.5];
+%     a2 = annotation('textarrow',x2,y2,'LineWidth',1.5,'HeadStyle','none',...
+%         'String','Experiment','FontSize',14);
+%     a2.Color = blue;
+%     
+%     % simulation
+%     x1 = [0.7,0.55];
+%     y1 = [0.45,0.25];
+%     a1 = annotation('textarrow',x1,y1,'LineWidth',1.5,'HeadStyle','none',...
+%         'String','Simulation','FontSize',14);
+%     a1.Color = red;
+    
     drawnow;
     P.fig_handle = fig_cvsg;
     P.save_plot();

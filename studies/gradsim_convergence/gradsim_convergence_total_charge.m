@@ -18,16 +18,16 @@ close all;
 %% input info
 
 % directories where the files are
-datadirs = {'g0','g0zh','g0rh','g0dt92','g0dt95'};
-datadirs = {'gm20','gm20d2','gm20d2e10','gm20d3'};
-useAvg = true;
+datadirs = {'g0zh','g0rh','g0','g0z2','g0r2','g0dt92'};
+% datadirs = {'gm20','gm20d2','gm20d2e10','gm20d3'};
+useAvg = false;
 
 % plasma parameters
 plasma_density = 1.81e14;
 x_ticks = 1:length(datadirs);
 seeding_position = 127; % ps
 sigma_z = 6.98516; % cm
-sigma_exp = 0.066; % cm 0.0536
+sigma_exp = 0.0536; % cm 0.0536
 exp_upperlimit = sigma_exp;
 
 % directory to save plots
@@ -70,6 +70,12 @@ charge_fraction = zeros(length(trans_limit),length(x_ticks));
 
 
 for d = 1:length(datadirs)
+    switch datadirs{d}
+        case 'g0'
+            dataformat = 'mat';
+        otherwise
+            dataformat = 'h5';
+    end
     
     % Load the analysis class and initial charge
     O = OsirisDenormalizer('plasmaden',1.81e14,'property','density',...
@@ -96,16 +102,16 @@ sz = 50;
 
 if length(trans_limit) == 1 % if only one radius is chosen, plot both on the same graph
     
-    plot_sim = scatter(x_ticks,sim_charge,sz,'o','filled');
+    plot_sim = scatter(x_ticks,(sim_charge-sim_charge(3))/sim_charge(3)+1,sz,'o','filled');
     grid on
     xlabel('simulation')
-    ylabel('bunch fraction')
+    ylabel({'( c - c_g_0 ) / c_g_0 + 1'})
     %     ylim([0 0.85])
     set(gca,'xtick',x_ticks,'xticklabel',datadirs)
     drawnow;
     P = Plotty('fig_handle',gcf,'plots_dir',plots_dir,'plot_name',['bunchfrac',num2str(studydump),'nodt95']);
     P.save_plot();
-    
+%     ylim([0 0.075])
     do_cvsr     = false;
     
 else % otherwise, each set of curves in its own graph

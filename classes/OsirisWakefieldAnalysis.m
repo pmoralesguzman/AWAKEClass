@@ -114,13 +114,13 @@ classdef OsirisWakefieldAnalysis < handle & OsirisDenormalizer
                 obj.propagation_z(n) = obj.propagation_distance;
                 
                 use_envelope = false;
-                search_xi = true;
+                search_xi = false;
                 switch obj.search_type
                     case 'max'
                         % gives only upper end of envelope
                         %                         field_envelope = 0.0 + envelope(obj.ndataOut',round(length(obj.ndataOut)/50),'peak')';
                         if use_envelope
-                            field_formax = sqrt(2)*envelope(obj.ndataOut',round(length(obj.ndataOut)/50),'rms')';
+                            field_formax = envelope(obj.ndataOut',round(length(obj.ndataOut)/50),'rms')';
                         else
                             field_formax = obj.ndataOut;
                         end
@@ -155,11 +155,8 @@ classdef OsirisWakefieldAnalysis < handle & OsirisDenormalizer
                 end % switch search type
                 
             end % for dump list
-            
-            
-            
-            
-        end
+
+        end %amplitude_vs_z
         
     end % ordinary methods
     

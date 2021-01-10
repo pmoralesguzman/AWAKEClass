@@ -15,10 +15,8 @@ clear;
 % close all;
 
 % datadirs = {'gm15','gm10','gm5','g0','gp1','gp2','gp5','gp10','gp15'};
-datadirs = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
-% datadirs = {'g0','gp5','gp10','gp15','gp20'};
-datadirs = {'R2gap0_2e14'};
-grads_sim = [-15,-10,-5,0,5,10,15];
+% datadirs = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
+datadirs = {'g0'};
 load('color_purple_to_green.mat');
 % leg = {'-2 %/m','-1.5 %/m','-1 %/m','-0.5 %/m','0 %/m','0.5 %/m','1 %/m','1.5 %/m','2 %/m'};
 leg = {'0 %/m','0.5 %/m','1 %/m','1.5 %/m','2 %/m'};
@@ -26,17 +24,18 @@ leg = {'0 %/m','0.5 %/m','1 %/m','1.5 %/m','2 %/m'};
 % save file name
 plots_dir = ['gradsim/amplitude/'];
 saveplot = true;
+colornumber = 5;
 
 % simulation parameters
-plasmaden = 2e14;
-dump_list = 1:1:200;
-sigma_z = 6;% 6.98516; % cm
+plasmaden = 1.81e14;
+dump_list = 0:1:100;
+sigma_z = 6.98516;% 6.98516; % cm
 bunch_center = 3.7;
 wakefields_direction = 'long';
 
 search_type = 'max';
 search_xi = 6.98516;
-trans_range = [0.002 0.01];
+trans_range = [0.003 0.005];
 useAvg = false;
 dataformat = 'mat';
 
@@ -55,7 +54,7 @@ for d = 1:length(datadirs)
         'sigma_z',sigma_z,'bunch_center',bunch_center,...
         'dataformat',dataformat);
     %     OWA.xi_range = search_xi + 0.6*[OWA.plasma_wavelength,-OWA.plasma_wavelength];
-    OWA.xi_range = [6.3 5.7];
+    OWA.xi_range = [7.3 6.7];
     
     % find max field
     OWA.amplitude_vs_z();
@@ -104,20 +103,23 @@ for d = 1:length(datadirs)
     end % switch datadir
     
     fig_amplitude = figure;
-    plot(propagations{d},amplitudes{d},'LineWidth',2,'color',cc(d,:));
+    if isempty(colornumber)
+        colornumber = d;
+    end
+    plot(propagations{d},amplitudes{d},'LineWidth',2,'color',cc(colornumber,:));
     
     fig_amplitude.Units = 'normalized';
-    fig_amplitude.OuterPosition = [0 0.25 0.6 0.55];
+    fig_amplitude.OuterPosition = [0 0.25 0.4 0.4];
     axis('tight');
     xlim([0 10]);
     ylim([0 350]);
     xlabel('z (m)');
-    ylabel(['max. E_z (MV/m) around \xi = 6 cm']);
-    title(title_g);
+    ylabel(['max. E_z (MV/m) around \xi_0 = 7 cm']);
+%     title(title_g);
     % ylabel(['mean defocusing fields (MV/m)']);
 %     legend(leg,'Location','best')
     drawnow;
-    P.plot_name = [datadirs{d},'maxlongxi6_100'];
+    P.plot_name = [datadirs{d},'maxlongxi7_g0'];
     P.fig_handle = fig_amplitude;
     P.save_plot();
 end

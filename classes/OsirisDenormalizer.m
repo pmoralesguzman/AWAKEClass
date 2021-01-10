@@ -103,7 +103,7 @@ classdef OsirisDenormalizer < handle & OsirisLoader
             
             % trimming
             p.addParameter('trans_range',[0 1e10], @(x) isfloat(x));
-            p.addParameter('xi_range',[1e10 0], @(x) isfloat(x));
+            p.addParameter('xi_range',[1e10 -1], @(x) isfloat(x));
             
             
             p.KeepUnmatched = true;

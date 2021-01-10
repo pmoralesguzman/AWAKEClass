@@ -60,11 +60,19 @@ classdef Plotty < handle & OsirisDenormalizer
         % figure number
         fig_number;
         
-        % include longitudinal profile
+        % field density plot
         include_long_profile;
         line_trans_range;
+        mirror_flag;
         
-    end % constant properties
+        ax_field;
+        ax_density;
+        tile_handle;
+        
+        % movie
+        frame_counter = 0;
+        
+    end % hidden properties
     
     properties
         
@@ -83,6 +91,10 @@ classdef Plotty < handle & OsirisDenormalizer
         waterfall_mat;
         waterfall_handle;
         fig_handle;
+        
+        
+        
+        struct_movie;
         
     end % properties
     
@@ -106,7 +118,7 @@ classdef Plotty < handle & OsirisDenormalizer
             
             % Specify which file formats to save (setting to empty ('')
             % will not save anything)
-            p.addParameter('save_format', {'png','fig','eps'}, @(x) any(ismember(x,{'png','fig','vector',''})));
+            p.addParameter('save_format', {'png','fig','eps'}, @(x) any(ismember(x,{'png','fig','eps','pdf',''})));
             % Specify if save or not
             p.addParameter('save_flag', true, @(x) islogical(x));
             % Specify if actually plot or not (the plot in question varies from function to function)
@@ -136,7 +148,9 @@ classdef Plotty < handle & OsirisDenormalizer
             % figure number
             p.addParameter('fig_number', 0, @(x) isfloat(x) && x > 0);
             
+            % field density plot options
             p.addParameter('include_long_profile', false, @(x) islogical(x));
+            p.addParameter('mirror_flag', true, @(x) islogical(x));
             
             p.KeepUnmatched = true;
             p.parse(varargin{:});
@@ -165,6 +179,7 @@ classdef Plotty < handle & OsirisDenormalizer
             obj.plot_scale            = p.Results.plot_scale;
             obj.fig_number            = p.Results.fig_number;
             obj.include_long_profile  = p.Results.include_long_profile;
+            obj.mirror_flag           = p.Results.mirror_flag;
         end % constructor
         
         function obj = save_plot(obj,varargin)
@@ -175,7 +190,7 @@ classdef Plotty < handle & OsirisDenormalizer
             
             plotsdir = 'plots/';
             if ~isfolder([plotsdir,obj.plots_dir]); mkdir([plotsdir,obj.plots_dir]); end
-             
+            
             if obj.save_flag
                 % save as png image
                 if any(ismember(obj.save_format,{'png'}))
@@ -195,17 +210,23 @@ classdef Plotty < handle & OsirisDenormalizer
                     exportgraphics(obj.fig_handle,[plotsdir,obj.plots_dir,'/eps/',obj.plot_name,'.eps'],'ContentType','vector')
                 end
                 
+                % save as vector image
+                if any(ismember(obj.save_format,{'pdf'}))
+                    if ~isfolder([plotsdir,obj.plots_dir,'/pdf/']); mkdir([plotsdir,obj.plots_dir,'/pdf/']); end
+                    exportgraphics(obj.fig_handle,[plotsdir,obj.plots_dir,'/pdf/',obj.plot_name,'.pdf'],'ContentType','vector')
+                end
+                
             end % save flag
         end % save_plot
         
         function obj = waterfall_plot(obj)
             
-               if obj.fig_number > 0
-                    fig_waterfall = figure(obj.fig_number);
-                else 
-                    fig_waterfall = figure;
-                end
-
+            if obj.fig_number > 0
+                fig_waterfall = figure(obj.fig_number);
+            else
+                fig_waterfall = figure;
+            end
+            
             obj.fig_handle = fig_waterfall;
             obj.waterfall_handle = imagesc(obj.waterfall_xi,...
                 obj.waterfall_z,rot90(obj.waterfall_mat,2));
@@ -243,122 +264,168 @@ classdef Plotty < handle & OsirisDenormalizer
             
         end % waterfall_plot
         
-        function obj = field_density_plot(obj)
+        function obj = plot_field(obj,varargin)
+            
+            % parse input to load files
+            p = inputParser;
+            
+            % directory where the plot should be saved
+            p.addParameter('field_plot', 0, @(x) isfloat(x));
+            p.addParameter('r_plot', 0, @(x) isfloat(x));
+            p.addParameter('z_plot', 0, @(x) isfloat(x));
+            
+            p.parse(varargin{:});
+            
+            field_plot         = p.Results.field_plot;
+            r_plot             = p.Results.r_plot;
+            z_plot             = p.Results.z_plot;
+            
+            if field_plot == 0
+                [field_plot,~,r_plot,z_plot] = obj.load_data_field_density_plot();
+            elseif (r_plot == 0) || (z_plot == 0)
+                error('Please also give r_plot and z_plot.')
+            end
+            
+            % mirroring for a better image, due to cylindrical symmetry
+            
+            field_plot_mirrored = [flip(field_plot);field_plot];
+            
+            % Establish the maximum field value
+            % the standard deviation is used as a measure the avoid
+            % noisy peaks that sets a wrong scale for the opaqueness
+            % get 3 times the std deviation with no weights
+            meanstd_field = 3*std(abs(field_plot),[],'all');
+            
+            
+            % set the limits to the axes
+            obj.ax_field = axes('parent',obj.tile_handle,'NextPlot','add');
+            
+            
+            obj.ax_field.XLim = [min(z_plot),max(z_plot)];
+            obj.ax_field.YLim = r_plot;
+            obj.ax_field.XDir = 'reverse';
+            imagesc(obj.ax_field,'XData',z_plot,'YData',r_plot,'CData',field_plot_mirrored,[-meanstd_field meanstd_field]);
+            c_field = colorbar('location','eastoutside');
+            colorbar_string = [obj.wakefields_direction,'. wakefields (MV/m)'];
+            c_field.Label.String = colorbar_string;
+            colormap(obj.ax_field,bluewhitered);
+        end % plot field
+        
+        function obj = plot_density(obj,varargin)
+            
+            % parse input to load files
+            p = inputParser;
+            
+            % directory where the plot should be saved
+            p.addParameter('density_plot', 0, @(x) isfloat(x));
+            p.addParameter('r_plot', 0, @(x) isfloat(x));
+            p.addParameter('z_plot', 0, @(x) isfloat(x));
+            
+            p.parse(varargin{:});
+            
+            density_plot       = p.Results.density_plot;
+            r_plot             = p.Results.r_plot;
+            z_plot             = p.Results.z_plot;
+
+            switch obj.plot_scale
+                case 'log'
+                    density_plot_l = log(density_plot+1);
+                case 'linear'
+                    density_plot_l = density_plot;
+            end % switch plot scale
+            %  clear density_plot
+            
+            if obj.mirror_flag
+                density_plot_mirrored = [flip(density_plot_l);density_plot_l];
+            else
+                density_plot_mirrored = density_plot_l;
+            end
+            clear density_plot_l
+            
+            % stablish the opaque index
+            % the standard deviation is used as a measure the avoid
+            % noisy peaks that sets a wrong scale for the opaqueness
+            % get 3 times the std deviation with no weights
+            meanstd_density = 3*std(density_plot_mirrored,[],'all');
+            max_opaqueness = 1;
+            ind_opaque = max_opaqueness*density_plot_mirrored;
+            ind_opaque(density_plot_mirrored > meanstd_density) = max_opaqueness*meanstd_density;
+            ind_opaque = ind_opaque/max(ind_opaque,[],'all');
+            
+            obj.ax_density = axes('parent',obj.tile_handle,'NextPlot','add','color','none');
+            % set limits to the axis
+            obj.ax_density.XLim = [min(z_plot),max(z_plot)];
+            obj.ax_density.YLim = r_plot;
+            obj.ax_density.XDir = 'reverse';
+            
+            
+            switch obj.plot_scale
+                case 'log'
+                    imagesc(obj.ax_density,'XData',z_plot,'YData',r_plot,'CData',density_plot_mirrored);
+                case 'linear'
+                    imagesc(obj.ax_density,'XData',z_plot,'YData',r_plot,'CData',double(density_plot_mirrored>0),'alphadata',ind_opaque);
+                    grad = colorGradient([1 1 1],[0 0 0],2);
+                    colormap(obj.ax_density,grad);
+            end % switch plot scale
+        end % plot density
+        
+        function obj = plot_field_density(obj,varargin)
+            
+            % parse input to load files
+            p = inputParser;
+            
+            % directory where the plot should be saved
+            p.addParameter('field_plot', 0, @(x) isfloat(x));
+            p.addParameter('density_plot', 0, @(x) isfloat(x));
+            p.addParameter('r_plot', 0, @(x) isfloat(x));
+            p.addParameter('z_plot', 0, @(x) isfloat(x));
+            p.addParameter('mirror_flag', true, @(x) isboolean(x));
+            
+            p.parse(varargin{:});
+            
+            field_plot         = p.Results.field_plot;
+            density_plot       = p.Results.density_plot;
+            r_plot             = p.Results.r_plot;
+            z_plot             = p.Results.z_plot;
+            obj.mirror_flag    = p.Results.mirror_flag;
             
             if obj.create_movie
-                if obj.include_long_profile
-                    long_profile_name = '_longprofile';
-                else
-                    long_profile_name = '';
-                end
-                movie_dir = ['movies/field_density',long_profile_name,'/'];
-                struct_dir = ['save_files/field_density',long_profile_name,'/'];
-                if ~isfolder(movie_dir)
-                    mkdir(movie_dir);
-                end 
-                if ~isfolder(struct_dir)
-                    mkdir(struct_dir);
-                end
-                video = VideoWriter([movie_dir,...
-                    obj.wakefields_direction,obj.datadir,obj.property_plot,...
-                    'xi',num2str(round(obj.xi_range(1))),'xi',...
-                    num2str(round(obj.xi_range(2))),'t',num2str(round(obj.trans_range(1))),...
-                    't',num2str(round(obj.trans_range(2))),'.avi']);
-                video.FrameRate = 4;
-                open(video);
-                f = 0;
-                struct_movie(length(obj.dump_list)) = struct('cdata',[],'colormap',[]);
+                video = setup_movie();
             end % create movie
             
             for n = 1:length(obj.dump_list)
-                %initialize variables to make life simpler afterwards (less
-                %switches and ifs)
-                field_plot = 0;% ax_field = 0;
-                density_plot = 0;% ax_density = 0;
+                
                 obj.dump = obj.dump_list(n);
                 
-                switch obj.property_plot
-                    case 'wakefields'
-                        obj.property = 'fields';
-                        obj.getdata();
-                        if obj.denormalize_flag
-                            obj.trim_data();
-                            obj.denorm_Efield();
-                            field_plot = obj.([obj.wakefields_direction,'field']);
-                        else
-                            field_plot = obj.ndataOut;
-                        end
-                    case 'density'
-                        obj.property = 'density';
-                        obj.getdata();
-                        if obj.denormalize_flag
-                            obj.trim_data();
-                            obj.denorm_density();
-                            density_plot = obj.(obj.species);
-                        else
-                            density_plot = obj.ndataOut;
-                        end % denorm flag
-                    case 'both'
-                        obj.property = 'fields';
-                        obj.getdata();
-                        if obj.denormalize_flag
-                            obj.trim_data();
-                        else
-                            field_plot = obj.ndataOut;
-                        end
-                        
-                        obj.property = 'density';
-                        obj.getdata();
-                        if obj.denormalize_flag
-                            obj.trim_data();
-                        else
-                            density_plot = obj.ndataOut;
-                        end
-                        
-                        if obj.denormalize_flag
-                            obj.denorm_Efield();
-                            obj.denorm_density();
-                            field_plot = obj.([obj.wakefields_direction,'field']);
-                            density_plot = obj.(obj.species);
-                        end % denorm flag
-                        
-                end % switch property_plot
-                
-                
-                % mirroring for a better image, due to cylindrical symmetry
-                field_half = field_plot;
-                field_plot_mirrored = [flip(field_plot);field_plot];
-                clear field_plot
-                
-                switch obj.plot_scale
-                    case 'log'
-                        density_plot_mirrored = log([flip(density_plot);density_plot]+1);
-                    case 'linear'
-                        density_plot_mirrored = [flip(density_plot);density_plot];
-                end % switch plot scale
-                clear density_plot
-                
-                r_plot = [-max(obj.r),max(obj.r)]*10; % in mm
-%                 z_plot = ([min(obj.z),max(obj.z)]-obj.simulation_window)/100; % in m
-                z_plot_temp = obj.dtime+obj.simulation_window-obj.z;
-                z_plot = [z_plot_temp(1),z_plot_temp(end)];
+                if field_plot == 0 && density_plot == 0
+                    [field_plot,density_plot,r_plot,z_plot] = obj.load_data_field_density_plot();
+                    obj.mirror_flag  = true;
+                end
+
                 % begin the plot
                 
                 if obj.fig_number > 0
                     fig_double = figure(obj.fig_number);
-                else 
+                else
                     fig_double = figure;
                 end
                 
-                
-                if obj.include_long_profile
-                    tile_handle = tiledlayout(fig_double,2,1);
-                    tile_handle.TileSpacing = 'compact';
-                    tile_handle.Padding = 'compact';
-                    plot_position = [ 0.0471    0.2560    0.9081    0.5111];%[0.1073    0.4259    0.7854    0.4375];
-                else
-                    plot_position = [0.1 0.1 0.8 0.5];
+                switch obj.include_lineout
+                    case 'density_profile'
+                        obj.tile_handle = tiledlayout(fig_double,2,1);
+                        plot_position = [0.0471    0.2560    0.9081    0.5111];
+                    case 'field_lineout'
+                        obj.tile_handle = tiledlayout(fig_double,2,1);
+                        plot_position = [0.0471    0.2560    0.9081    0.5111];
+                    case 'both_density_field'
+                        obj.tile_handle = tiledlayout(fig_double,3,1);
+                         plot_position = [0.0346    0.1231    0.9008    0.7356];
+                    otherwise
+                        obj.tile_handle = tiledlayout(fig_double,1,1);   
+                        plot_position = [0.1 0.1 0.8 0.5];
                 end
+                 obj.tile_handle.TileSpacing = 'compact';
+                    obj.tile_handle.Padding = 'compact';
                 
                 if n == 1
                     fig_double.Units = 'normalized';
@@ -366,80 +433,28 @@ classdef Plotty < handle & OsirisDenormalizer
                 end
                 
                 if ismember(obj.property_plot,{'wakefields','both'})
-                    
-                    if obj.useAvg
-                        skip_axis = 3;
-                    else
-                        skip_axis = 1;
-                    end
-                    
-                    field_color_max = max(field_half(skip_axis:end,:),[],'all');
-                    if field_color_max <= 0; field_color_max = 1; end
-                    
-                    % set the limits to the axes
-                    if obj.include_long_profile
-                        ax_field = axes('parent',tile_handle,'NextPlot','add');
-                    else
-                        ax_field = axes('parent',fig_double,'NextPlot','add');
-                    end
-                    ax_field.XLim = [min(z_plot),max(z_plot)];
-                    ax_field.YLim = r_plot;
-                    ax_field.XDir = 'reverse';
-                    imagesc(ax_field,'XData',z_plot,'YData',r_plot,'CData',field_plot_mirrored,[-field_color_max field_color_max]);
-                    
-                    c_field = colorbar('location','eastoutside');
-                    colorbar_string = [obj.wakefields_direction,'. wakefields (MV/m)'];
-                    c_field.Label.String = colorbar_string;
-                    colormap(ax_field,bluewhitered);
+                    obj.plot_field();
                 end
                 
                 if ismember(obj.property_plot,{'density','both'})
-                    
-                    % stablish the opaque index
-                    % the standard deviation is used as a measure the avoid
-                    % noisy peaks that sets a wrong scale for the opaqueness
-                    % get 3 times the std deviation with no weights
-                    meanstd_density = 3*std(density_plot_mirrored,[],'all');
-                    max_opaqueness = 1;
-                    ind_opaque = max_opaqueness*density_plot_mirrored;
-                    ind_opaque(density_plot_mirrored > meanstd_density) = max_opaqueness*meanstd_density;
-                    ind_opaque = ind_opaque/max(ind_opaque,[],'all');
-                    if obj.include_long_profile
-                        ax_density = axes('parent',tile_handle,'NextPlot','add','color','none');
-                    else
-                        ax_density = axes('parent',fig_double,'NextPlot','add','color','none');
-                    end
-                    % set limits to the axis
-                    ax_density.XLim = [min(z_plot),max(z_plot)];
-                    ax_density.YLim = r_plot;
-                    ax_density.XDir = 'reverse';
-
-
-                    switch obj.plot_scale
-                        case 'log'
-                            imagesc(ax_density,'XData',z_plot,'YData',r_plot,'CData',density_plot_mirrored);
-                        case 'linear'
-                            imagesc(ax_density,'XData',z_plot,'YData',r_plot,'CData',double(density_plot_mirrored>0),'alphadata',ind_opaque);
-                            grad = colorGradient([1 1 1],[0 0 0],2);
-                            colormap(ax_density,grad);
-                    end % switch plot scale
+                    obj.plot_density();
                 end
                 
                 if strcmp(obj.property_plot,'both')
-                    ax_field.Position = ax_density.Position;
-                    linkaxes([ax_field,ax_density],'xy')
+                    obj.ax_field.Position = obj.ax_density.Position;
+                    linkaxes([obj.ax_field,obj.ax_density],'xy')
                 end
                 if obj.title_flag
                     title(['propagation dist. = ',num2str(obj.propagation_distance/100,3),' m',''])
                 end
                 
                 trans_upper = 0.066;
-                obj.line_trans_range = [0.05 0.06];%[0.08 0.09];
-                line_flag = false;
+                obj.line_trans_range = [0 0.01];%[0.08 0.09];
+                line_flag = true;
                 if line_flag
                     %                     hold on
-                    yline(obj.line_trans_range(1)*10,'r','LineWidth',1)
                     yline(obj.line_trans_range(2)*10,'r','LineWidth',1)
+                    yline(-obj.line_trans_range(2)*10,'r','LineWidth',1)
                     %                    plot(max(z_plot)-[0.003 0.003],r_plot,'LineWidth',2,'k')
                     %                     xline(max(z_plot)-0.0025,'k','LineWidth',2)
                     %                     hold off
@@ -456,21 +471,44 @@ classdef Plotty < handle & OsirisDenormalizer
                     obj.trans_range = obj.line_trans_range;
                     obj.ndataOut = obj.(['n',obj.species]);
                     obj.trim_data(); obj.denorm_density();
-                    long_profile = obj.cylindrical_radial_integration(obj.r,obj.(obj.species),'just_sum');
-                    plongprofile = plot(obj.dtime+obj.simulation_window-obj.z,long_profile);
+                    r_lineplot = linspace(0,max(r_plot),size(density_plot,1));
+                    ir = r_lineplot < obj.line_trans_range(2)*10;
+                    %                     long_profile = obj.cylindrical_radial_integration(obj.r,obj.(obj.species),'just_sum');
+                    long_profile = obj.cylindrical_radial_integration(r_lineplot(ir),density_plot(ir,:),'just_sum');
+                    %                     plongprofile = plot(obj.dtime+obj.simulation_window-obj.z,long_profile);
+                    plongprofile = plot(linspace(max(z_plot),min(z_plot),length(long_profile)),long_profile);
                     axlongprofile.XDir = 'reverse';
                     %                     axlongprofile.XTick = [obj.dtime+obj.simulation_window-obj.z];
                     %                     axlongprofile.XTickLabel = [obj.dtime+obj.simulation_window-obj.z];
                     xlim(ax_density.XLim)
+                    ylim([0 8e14]) %2e15
                     obj.trans_range = save_trans_range;
                     ylabel({'charge','density (a. u.)'});
                     xlabel('ct - z (cm)');
-                    ax_density.FontSize = 15;
-                    ax_field.FontSize = 15;
-                    axlongprofile.FontSize = 15;
+                    ax_density.FontSize = 12;
+                    ax_field.FontSize = 12;
+                    axlongprofile.FontSize = 12;
+                    
                 end % if include long profile
                 
-                
+                include_field_lineout = true;
+                if include_field_lineout
+                    axlongprofile.XTickLabel = [];
+                    axlineout = nexttile;
+                    % HARDCODED 1111
+                    lineout = field_half(3,:);
+                    plineout = plot(obj.dtime+obj.simulation_window-obj.z,lineout);
+                    axlineout.XDir = 'reverse';
+                    %                     axlongprofile.XTick = [obj.dtime+obj.simulation_window-obj.z];
+                    %                     axlongprofile.XTickLabel = [obj.dtime+obj.simulation_window-obj.z];
+                    xlim(ax_density.XLim)
+                    ylabel({'E_z (MV/m)'});
+                    xlabel('ct - z (cm)');
+                    ax_density.FontSize = 12;
+                    ax_field.FontSize = 12;
+                    axlineout.FontSize = 12;
+                    %                     ylim([-200 200])
+                end % if include long profile
                 
                 drawnow;
                 
@@ -487,10 +525,10 @@ classdef Plotty < handle & OsirisDenormalizer
                 
                 obj.save_plot();
                 
-
+                
                 if obj.create_movie
-                    struct_movie(f+1) = getframe(gcf);
-                    f = f + 1;
+                    obj.struct_movie(obj.frame_counter+1) = getframe(gcf);
+                    obj.frame_counter = obj.frame_counter + 1;
                 end % create movie
                 
                 if n < length(obj.dump_list)
@@ -500,13 +538,102 @@ classdef Plotty < handle & OsirisDenormalizer
             end % length dump list
             
             if obj.create_movie
-                writeVideo(video,struct_movie);
+                writeVideo(video,obj.struct_movie);
+                struct_movie_save = obj.struct_movie;
                 save(['save_files/field_density/struct',obj.datadir,...
-                    '_',obj.wakefields_direction,'.mat'],'struct_movie')
+                    '_',obj.wakefields_direction,'.mat'],'struct_movie_save')
                 close(video);
             end % if create movie
             
         end % field_density_plot
+        
+        function [obj,video] = setup_movie(obj)
+            if obj.include_long_profile
+                long_profile_name = '_longprofile';
+            else
+                long_profile_name = '';
+            end
+            movie_dir = ['movies/field_density',long_profile_name,'/'];
+            struct_dir = ['save_files/field_density',long_profile_name,'/'];
+            if ~isfolder(movie_dir)
+                mkdir(movie_dir);
+            end
+            if ~isfolder(struct_dir)
+                mkdir(struct_dir);
+            end
+            video = VideoWriter([movie_dir,...
+                obj.wakefields_direction,obj.datadir,obj.property_plot,...
+                'xi',num2str(round(obj.xi_range(1))),'xi',...
+                num2str(round(obj.xi_range(2))),'t',num2str(round(obj.trans_range(1))),...
+                't',num2str(round(obj.trans_range(2))),'.avi']);
+            video.FrameRate = 4;
+            open(video);
+            obj.struct_movie(length(obj.dump_list)) = struct('cdata',[],'colormap',[]);
+        end
+        
+        function [field_plot,density_plot,r_plot,z_plot] = load_data_field_density_plot(obj)
+            %initialize variables to make life simpler afterwards (less
+            %switches and ifs)
+            field_plot = 0; % ax_field = 0;
+            density_plot = 0; % ax_density = 0;
+            
+            switch obj.property_plot
+                case 'wakefields'
+                    obj.property = 'fields';
+                    obj.getdata();
+                    if obj.denormalize_flag
+                        obj.trim_data();
+                        obj.denorm_Efield();
+                        field_plot = obj.([obj.wakefields_direction,'field']);
+                    else
+                        field_plot = obj.ndataOut;
+                    end
+                    
+                case 'density'
+                    obj.property = 'density';
+                    obj.getdata();
+                    if obj.denormalize_flag
+                        obj.trim_data();
+                        obj.denorm_density();
+                        density_plot = obj.(obj.species);
+                    else
+                        density_plot = obj.ndataOut;
+                    end % denorm flag
+                case 'both'
+                    obj.property = 'fields';
+                    obj.getdata();
+                    if obj.denormalize_flag
+                        obj.trim_data();
+                    else
+                        field_plot = obj.ndataOut;
+                    end
+                    
+                    obj.property = 'density';
+                    obj.getdata();
+                    if obj.denormalize_flag
+                        obj.trim_data();
+                    else
+                        density_plot = obj.ndataOut;
+                    end
+                    
+                    if obj.denormalize_flag
+                        obj.denorm_Efield();
+                        obj.denorm_density();
+                        field_plot = obj.([obj.wakefields_direction,'field']);
+                        density_plot = obj.(obj.species);
+                    end % denorm flag
+                    
+            end % switch property_plot
+            
+            %             intnear1500 = floor(length(density_plot)/1500);
+            %             density_plot = density_plot(:,end-intnear1500*1500+1:end);
+            %             density_plot = squeeze(sum(reshape(density_plot,size(density_plot,1),intnear1500,[]),2));
+            
+            r_plot = [-max(obj.r),max(obj.r)]*10; % in mm
+            % z_plot = ([min(obj.z),max(obj.z)]-obj.simulation_window)/100; % in m
+            z_plot_temp = obj.dtime+obj.simulation_window-obj.z;
+            z_plot = [z_plot_temp(1),z_plot_temp(end)];
+        end % load data field density plot
         
         
         function obj = lineout_plot(obj)
@@ -516,7 +643,7 @@ classdef Plotty < handle & OsirisDenormalizer
                 struct_dir = ['save_files/lineout/'];
                 if ~isfolder(movie_dir)
                     mkdir(movie_dir);
-                end 
+                end
                 if ~isfolder(struct_dir)
                     mkdir(struct_dir);
                 end
@@ -558,7 +685,7 @@ classdef Plotty < handle & OsirisDenormalizer
                         else
                             density_plot = obj.ndataOut;
                         end % denorm flag
-                        lineout_plot = obj.cylindrical_radial_integration(obj.r,density_plot);
+                        lineout_plot = obj.cylindrical_radial_integration(obj.r,density_plot,'just_sum');
                         
                 end % switch property_plot
                 
@@ -591,7 +718,7 @@ classdef Plotty < handle & OsirisDenormalizer
                     xlabel('z (m)');
                 else
                     if obj.title_flag
-                        title(['propagation dist. = ',num2str(obj.n_propagation_distance,2),'',' (r = 1/kp)']) %(r = 1/kp)
+                        title(['propagation dist. = ',num2str(obj.n_propagation_distance,2),'',' (r = [0,0.536] mm)']) %(r = 1/kp)
                     end
                     ylabel([obj.wakefields_direction,'. fields'])
                     xlabel('z');
@@ -618,7 +745,6 @@ classdef Plotty < handle & OsirisDenormalizer
                     num2str(round(obj.xi_range(2))),'t',num2str(round(obj.trans_range(1))),...
                     't',num2str(round(obj.trans_range(2)))];
                 obj.save_plot();
-                     
                 
                 
                 if obj.create_movie
@@ -639,8 +765,7 @@ classdef Plotty < handle & OsirisDenormalizer
                 close(video);
             end % if create movie
             
-        end % field_density_plot
-
+        end % lineout plot
         
     end % ordinary methods
     
