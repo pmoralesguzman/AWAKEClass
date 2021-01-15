@@ -23,8 +23,8 @@ classdef AwakeFFT < handle & OsirisDenormalizer
     
     properties
         
-        % input
-        on_axis;
+        % input (description in parser)
+        on_axis; 
         scan_type;
         trans_lims;
         xi_lims;
@@ -32,6 +32,9 @@ classdef AwakeFFT < handle & OsirisDenormalizer
         % parameter to find the next power of 2, for n times the length of the time
         % domain data, for the zero padding. It makes finding the peak
         % of the power spectrum more accurate.
+        
+        center_around_0_flag;
+        center_around_0_points;
         
         % output
         % fft_dataload
@@ -47,9 +50,9 @@ classdef AwakeFFT < handle & OsirisDenormalizer
         fft_low_lim;
         fft_upp_lim;
         peak_distance;
-        maxpeak;
-        maxloc;
-        maxphase;
+        max_peak;
+        max_loc;
+        max_phase;
         
         
     end % standard properties
@@ -62,7 +65,6 @@ classdef AwakeFFT < handle & OsirisDenormalizer
         locs;
         pks;
         
-        center_around_0 = 0;
         
     end % hidden properties
     
@@ -74,12 +76,23 @@ classdef AwakeFFT < handle & OsirisDenormalizer
             p = inputParser;
             
             % selection options
+            % Options to make the on-axis profile: 
+            % - sum: just sum counts (usually done like this in the experiment)
+            % - int: integrate counts radially (this is more realistic as considers the ings of charge)
+            % - intw: integrate but weighting each pixel by 1/r (does not work very well at the moment 15/01/2021, better use sum)
+            % - lineout: a lineout at the position r (usually used for fields)
             p.addParameter('on_axis','int', @(x) ismember(x,{'int','intw','sum','lineout'}));
+            % cumulative: take all charge from axis (or around the axis) up the each one of the limits in trans_lims
+            % slice: take charge from trans_lims(r) to trans_lims(r+1)
             p.addParameter('scan_type','cumulative', @(x) ismember(x,{'cumulative','slice','slice_abs'}));
+            % limits or ranges in which to divide the data
             p.addParameter('trans_lims',1e10, @(x) isfloat(x));
+            % range in xi
             p.addParameter('xi_lims',1e10, @(x) isfloat(x));
+            % how many elements for the zero padding of the DFT
             p.addParameter('n_zeropadding', 5, @(x) isfloat(x) && (x > 1));
-            
+            p.addParameter('center_around_0_flag', 0, @(x) ismember(x,[0,1]));
+            p.addParameter('center_around_0_points', 101, @(x) isfloat(x) && (x > 0));
             % fft peaks (peak selection)
             p.addParameter('fft_low_lim', 0.5, @(x) isfloat(x) && (x > 0));
             p.addParameter('fft_upp_lim', 1.5, @(x) isfloat(x) && (x > 0));
@@ -96,14 +109,16 @@ classdef AwakeFFT < handle & OsirisDenormalizer
             end
             obj = obj@OsirisDenormalizer(unmatched{:}); %Parse to superclass OsirisDenormalizer.m
             
-            obj.on_axis        = p.Results.on_axis;
-            obj.scan_type      = p.Results.scan_type;
-            obj.trans_lims     = p.Results.trans_lims;
-            obj.xi_lims        = p.Results.xi_lims;
-            obj.n_zeropadding  = p.Results.n_zeropadding;
-            obj.fft_low_lim    = p.Results.fft_low_lim;
-            obj.fft_upp_lim    = p.Results.fft_upp_lim;
-            obj.peak_distance  = p.Results.peak_distance;
+            obj.on_axis              = p.Results.on_axis;
+            obj.scan_type            = p.Results.scan_type;
+            obj.trans_lims           = p.Results.trans_lims;
+            obj.xi_lims              = p.Results.xi_lims;
+            obj.n_zeropadding        = p.Results.n_zeropadding;
+            obj.center_around_0_flag = p.Results.center_around_0_flag;
+            obj.center_around_0_points= p.Results.center_around_0_points;
+            obj.fft_low_lim          = p.Results.fft_low_lim;
+            obj.fft_upp_lim          = p.Results.fft_upp_lim;
+            obj.peak_distance        = p.Results.peak_distance;
             
         end % constructor
         
@@ -183,12 +198,11 @@ classdef AwakeFFT < handle & OsirisDenormalizer
                 
             end % for trans lims
             
-            if obj.center_around_0 == 1
-                fft_densitymatrix_smooth = smoothdata(obj.fft_densitymatrix,2,'gaussian',101);
-                aa = obj.fft_densitymatrix;
-                                obj.fft_densitymatrix = obj.fft_densitymatrix - fft_densitymatrix_smooth;
-%                 bb = obj.fft_densitymatrix - fft_densitymatrix_smooth;
-                a = 1;
+            if obj.center_around_0_flag == 1
+                fft_densitymatrix_smooth = smoothdata(obj.fft_densitymatrix,2,'gaussian',obj.center_around_0_points);
+                densitymatrix_temp = obj.fft_densitymatrix;
+                obj.fft_densitymatrix = densitymatrix_temp - fft_densitymatrix_smooth;
+                % smooth_debug = obj.fft_densitymatrix - fft_densitymatrix_smooth;
             end % center_around_0
             
         end % fft_dataload
@@ -208,24 +222,24 @@ classdef AwakeFFT < handle & OsirisDenormalizer
             obj.property = 'density';
             obj.getdata();
             
-%             % denormalize z
+            %             % denormalize z
             obj.z_raw = obj.denorm_distance(obj.nz_raw);
-%             
-%             % trim in z 
-%             iz = (obj.z_raw >= obj.xi_range(2)) & (obj.z_raw < obj.xi_range(1));
+            %
+            %             % trim in z
+            %             iz = (obj.z_raw >= obj.xi_range(2)) & (obj.z_raw < obj.xi_range(1));
             
-
+            
             
             
             % push charges and denormalize
             distance = 350;
             new_r = obj.charge_pusher(obj,distance);
             obj.r_raw = obj.denorm_distance(new_r);
-           
+            
             % trim the data
             obj.trim_rawdata(); % zr axes already denorm; data is automatically assigned
             obj.trim_data();
-                        
+            
             obj.fft_densitymatrix = zeros(length(obj.trans_lims),length(obj.z));
             obj.fft_fieldmatrix = zeros(length(obj.trans_lims),length(obj.z));
             
@@ -251,24 +265,24 @@ classdef AwakeFFT < handle & OsirisDenormalizer
                 
                 % sort the indeces of the binning and then sort the
                 % elements in q
-                [ind_sort,ind_order] = sort(ind_bin); 
+                [ind_sort,ind_order] = sort(ind_bin);
                 q_r_sort = q_r(ind_order);
                 
                 % say how many there is in each bin in a cumulative way,
                 % to use that as indices
                 % for q, to quickly build up the indexed density along z
-                ind_sum = [0,0,histcounts(ind_sort,1:1:length(obj.z),'Normalization','cumcount')]; 
-
+                ind_sum = [0,0,histcounts(ind_sort,1:1:length(obj.z),'Normalization','cumcount')];
+                
                 % go through each element in bz and arrange that charge
                 % according to the bins, using the indeces from histconts
                 for bz = 1:length(obj.z)
-                    obj.fft_densitymatrix(r,bz) = sum(q_r_sort(ind_sum(bz)+1:ind_sum(bz+1)));  
+                    obj.fft_densitymatrix(r,bz) = sum(q_r_sort(ind_sum(bz)+1:ind_sum(bz+1)));
                 end
-             
+                
             end % for trans lims
             
         end % fft_rawdataload
-
+        
         
         function obj = get_fft(obj)
             %% Prepare variables for FFT in Matlab
@@ -334,7 +348,7 @@ classdef AwakeFFT < handle & OsirisDenormalizer
                 fft_phase = varargin{2};
                 long_profile = varargin{3};
             end
-            % output (maxloc) is given already in GHz
+            % output (max_loc) is given already in GHz
             peak_dis = obj.peak_distance*obj.plasmafreq_GHz;
             low_lim = obj.fft_low_lim*obj.plasmafreq_GHz;
             upp_lim = obj.fft_upp_lim*obj.plasmafreq_GHz;
@@ -348,38 +362,38 @@ classdef AwakeFFT < handle & OsirisDenormalizer
             
             [obj.pks,obj.locs] = findpeaks(amplitude(obj.ind_pksearch),freqs(obj.ind_pksearch),...
                 'MinPeakDistance',peak_dis);
-            [obj.maxpeak,maxlocs] = max(obj.pks);
-            if isempty(obj.maxloc) || ~(obj.maxloc == 115)  % some harcoded thing for tracking, no meaning
-                obj.maxloc = obj.locs(maxlocs);
+            [obj.max_peak,maxlocs] = max(obj.pks);
+            if isempty(obj.max_loc) || ~(obj.max_loc == 115)  % some harcoded thing for tracking, no meaning
+                obj.max_loc = obj.locs(maxlocs);
             end
             
             % calculate phase of dominant frequency
             
-            if isempty(obj.maxloc)
-                obj.maxphase = nan;
+            if isempty(obj.max_loc)
+                obj.max_phase = nan;
             elseif length(varargin) == 3
-                %                 ind_maxloc = obj.maxloc == freqs;
+                %                 ind_maxloc = obj.max_loc == freqs;
                 %                 switch obj.property
                 %                     case 'density'
-                %                         obj.maxphase = obj.fft_phase_den(ind_maxloc);
+                %                         obj.max_phase = obj.fft_phase_den(ind_maxloc);
                 %                     case 'fields'
-                %                         obj.maxphase = obj.fft_phase_fld(ind_maxloc);
+                %                         obj.max_phase = obj.fft_phase_fld(ind_maxloc);
                 %                 end % switch property
                 
-                ind_maxloc = obj.maxloc == freqs;
+                ind_maxloc = obj.max_loc == freqs;
                 
                 obj.phase_starting_point = fft_phase(ind_maxloc);
                 fo = fitoptions('Method','NonLinearLeastSquares',...
                     'Lower',[0],...
                     'Upper',[2*pi],...
                     'StartPoint',[obj.phase_starting_point]);
-                wavenumber = obj.maxloc*1e9/obj.c_cm;
+                wavenumber = obj.max_loc*1e9/obj.c_cm;
                 norm_amplitude = max(amplitude)/2;
                 ft = fittype('(cos(wavenumber*(2*pi*z) + phi) > 0)*cos(wavenumber*(2*pi*z) + phi)','problem','wavenumber',...
                     'independent','z','dependent','density','options',fo);
                 fit_results = fit(obj.z',long_profile',ft,'problem',wavenumber);
-                obj.maxphase = fit_results.phi;
-            end % if isempty maxloc
+                obj.max_phase = fit_results.phi;
+            end % if isempty max_loc
             
             
         end % fft_peaks

@@ -25,8 +25,6 @@ classdef ExperimentalDataAnalyser < handle & ExperimentalDataLoader
     
     properties(Constant, Hidden)
         
-        
-        
     end % constant properties
     
     properties
@@ -35,19 +33,18 @@ classdef ExperimentalDataAnalyser < handle & ExperimentalDataLoader
     
     properties
         
-        
         % output
         
         SCI;
         % output of gaussian fits
         SCI_IF_px; % ionization front position in pixels
-        SCI_center_px; % cunch center position in pixels
-        SCI_center;
+        SCI_center_px; % bunch axis position in pixels
+        SCI_center; % bunch axis position in cm
         SCI_width_px; % rms width in pixels
-        SCI_width;
+        SCI_width; % rms width in cm
         
-        SCI_yaxis;
-        SCI_xaxis;
+        SCI_r; % transverse axis in cm
+        SCI_z; % longitudinal axis in cm
 
         
     end % hidden properties
@@ -155,8 +152,8 @@ classdef ExperimentalDataAnalyser < handle & ExperimentalDataLoader
 
             % axes
             
-            obj.SCI_yaxis = ((1:1:672)-obj.SCI_center_px)*obj.px2cm; %cm
-            obj.SCI_xaxis = linspace(1500,-136,1636)*obj.px2ps; %ps
+            obj.SCI_r = ((1:1:672)-obj.SCI_center_px)*obj.px2cm; %cm
+            obj.SCI_z = linspace(1500,-136,1636)*obj.px2ps; %ps
             
         end % loadSCdata
         

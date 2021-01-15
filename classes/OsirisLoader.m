@@ -83,9 +83,9 @@ classdef OsirisLoader < handle
         nz; nr; % long. and trans. axes
         n_simulation_window; % simulation window
         n_propagation_distance; % propagation distance
-        n_first_microbunch_position;
-        first_microbunch_position;
-        first_microbunch_position_px;
+        n_first_microbunch_position; % first microbunch position in normalized units
+        first_microbunch_position; % first microbunch position in cm
+        first_microbunch_position_px; % first microbunch position in pixels (for experimental data)
         
         % fields (normalized)
         nlongfield; % longitudinal wakefields (Ez)

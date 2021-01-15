@@ -24,6 +24,7 @@ classdef ExperimentalDataLoader < handle & OsirisDenormalizer
     
     
     properties(Constant, Hidden)
+        
         px2cm = 0.0217/10;
         px2ps = 0.4121398108414873;
         
