@@ -10,11 +10,11 @@
 %
 % Work in progress
 %
-% P. I. Morales Guzman
+% EDA. I. Morales Guzman
 % Last update: 05/10/2020
 %________________________________________________________________________
 
-close all;
+% close all;
 clear;
 % set(0,'defaultAxesFontSize',20)
 % load experimental data from Fabian
@@ -24,14 +24,19 @@ freqs_exp(:,1) = [];
 % 1: full green, 2: CTR black, 3: narrow red, 4: wide blue
 
 % data directory
+datadirs_exp    = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
 datadirs    = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
 dataformat  = 'mat';
+
+dataformats  = {'h5','h5','h5','mat','mat','mat','mat','mat','mat'};
+dataformats  = {'mat','mat','mat','mat','mat','mat','mat','mat','mat'};
+
 useAvg      = false;
 dump        = 133;
 
 
 % save directory
-plots_dir           = ['AAC/fft/rg/',''];
+plots_dir           = ['gradsim_paper/fft/rg/',''];
 plot_name_suffix    = [''];
 save_format         = {'png','eps','fig'};
 
@@ -39,15 +44,11 @@ save_format         = {'png','eps','fig'};
 plasma_density  = 1.81e14;
 property        = 'density';
 species         = 'proton_beam';
-field           = 'e';
-direction       = 'z';
-wakefields_direction = 'long';
 grads_sim = [-20,-15,-10,-5,0,5,10,15,20]/10;
 
 % analysis
-xi_range        = [21 0.75];
+xi_range        = [18 0.4]; %384
 % trans_range is set by trans_lims in this analysis
-plasma_radius   = 0.15; % cm
 nslices         = 2;
 
 scan_type       = 'cumulative'; % slice, cumulative
@@ -59,11 +60,11 @@ showChargeinDotSize = true; % show dot size to reflect charge
 
 % switches
 plot_powerspectra   = false;
-save_plot_flag      = true;
+save_plot_flag      = false;
 normalized_frequency_switch = true;
 
 % calculated parameters
-trans_lims      = [0.0868 0.165];
+trans_lims      = [0.0536 3*0.0536];
 % measured radius = 0.66 mm,
 % first exp limit = 0.868 mm
 % last exp limit 2.604 mm
@@ -82,45 +83,45 @@ charge_in_slice = ones(nslices,length(dump));
 AFFT = AwakeFFT(...
     'datadir',datadirs{1},'dataformat',dataformat,'useAvg',useAvg,'dump',dump,...
     'plasmaden',plasma_density,'property',property,'species',species,...
-    'field',field,'direction',direction,'wakefields_direction',wakefields_direction,...
     'xi_range',xi_range,'trans_lims',trans_lims,...
-    'scan_type',scan_type,'on_axis','sum');
+    'scan_type',scan_type,'on_axis','int');
 
 AFFT2 = AwakeFFT(...
-    'datadir',datadirs{1},'dataformat',dataformat,'useAvg',useAvg,'dump',dump,...
+    'datadir',datadirs_exp{1},'dataformat',dataformat,'useAvg',useAvg,'dump',dump,...
     'plasmaden',plasma_density,'property',property,'species',species,...
-    'field',field,'direction',direction,'wakefields_direction',wakefields_direction,...
     'xi_range',xi_range,'trans_lims',trans_lims,...
-    'scan_type',scan_type,'on_axis','sum');
+    'scan_type','cumulative','on_axis','sum');
 
 P = Plotty('plots_dir',plots_dir,'plot_name',['fvsg',''],'plasmaden',plasma_density,'save_flag',save_plot_flag,...
     'datadir',datadirs{1});
-P.loadSCdata();
+EDA = ExperimentalDataAnalyser('plasmaden',plasma_density,'datadir',datadirs_exp{1});
+EDA.loadSCdata();
 
-AFFT2.dr = -P.SCyaxis(2) + P.SCyaxis(1);
+AFFT2.dr = EDA.SCI_yaxis(2) - EDA.SCI_yaxis(1);
 
 
 for d = 1:length(datadirs)
+    
     if d == 2
-        P.datadir = datadirs{d-1}; P.loadSCdata();
+        EDA.datadir = datadirs_exp{d-1}; EDA.loadSCdata();
     else
-        P.datadir = datadirs{d}; P.loadSCdata();
+        EDA.datadir = datadirs_exp{d}; EDA.loadSCdata();
         
     end
     
     AFFT.datadir = datadirs{d};
-    
+    AFFT.dataformat = dataformats{d};
     AFFT.fft_dataload(true);
     
-    AFFT2.r = P.SCyaxis;
+    AFFT2.r = EDA.SCI_yaxis;
     % trim
-    z = P.SCxaxis*1e-12*P.c_cm;
+    z = EDA.SCI_xaxis*1e-12*EDA.c_cm;
     
     z_ind = z > xi_range(2) & ... %large
         z <= xi_range(1); % small
     AFFT2.z = z(z_ind);
     
-    AFFT2.proton_beam = P.SC(:,z_ind);
+    AFFT2.proton_beam = EDA.SCI(:,z_ind);
     
     AFFT2.fft_dataload(false);
     prop_distance_m = AFFT.propagation_distance/100; % propagation distance in m
@@ -165,7 +166,7 @@ for d = 1:length(datadirs)
             
             fig_powerspectra = figure('visible','off');
             plot(fft_freqs_plot,amplitude_plot,'LineWidth',2);
-            title(['power spec. (prop. dist. = ',...
+            title(['power spec. (proEDA. dist. = ',...
                 num2str(AFFT.propagation_distance/100,2),'m; r = [',...
                 num2str(trans_lims_plot_title(r)*10,2),', ',num2str(trans_lims_plot_title(r+1)*10,2),']mm)']);
             ylabel('amplitude');
@@ -187,7 +188,7 @@ for d = 1:length(datadirs)
             
             figy = figure('visible','off');
             plot(z_plot,density_plot,'LineWidth',2);
-            title(['long. den. distributon (prop. dist. = ',...
+            title(['long. den. distributon (proEDA. dist. = ',...
                 num2str(AFFT.propagation_distance/100,2),'m; r = [',...
                 num2str(trans_lims_plot_title(r)*10,2),', ',num2str(trans_lims_plot_title(r+1)*10,2),']mm)']);
             ylabel('density (1/cm)');
@@ -214,7 +215,8 @@ peak_freqs_plot = peak_freqs;
 freqs_exp = peak_freqs2(:,[1,3:9]);
 
 %% plotty
-fig_charge = figure;
+fig_fvsrg = figure();
+ax_fvsrg = axes('Parent',fig_fvsrg);
 hold on
 if normalized_frequency_switch
     marker_size = 10;
@@ -235,7 +237,7 @@ if normalized_frequency_switch
     
     ylim(freq_range/AFFT.plasmafreq_GHz)
     
-    ylabel({'normalized microbunch train frequency (a. u.)'})
+    ylabel({'normalized modulation frequency (a. u.)'})
     
     legend([plot_sim(1) plot_sim(2) plot_exp(1) plot_exp(2)],...
         'Simulation narrow window','Simulation wide window',...
@@ -251,7 +253,7 @@ else
         peak_freqs_plot,dotsize,'filled');
     %         ylim([min(peak_freqs_plot)*0.99,max(peak_freqs_plot)*1.01])
     ylim(freq_range);
-    ylabel('freq. (GHz)')
+    ylabel('frequency (GHz)')
 end % if normalized frequency switch
 
 %     ax_handle = gca;
@@ -263,7 +265,7 @@ hold off
 grid on
 xlabel('gradient (%/m)')
 
-P.save_plot(fig_charge);
+P.save_plot(fig_fvsrg);
 
 
 

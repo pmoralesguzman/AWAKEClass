@@ -83,6 +83,9 @@ classdef OsirisLoader < handle
         nz; nr; % long. and trans. axes
         n_simulation_window; % simulation window
         n_propagation_distance; % propagation distance
+        n_first_microbunch_position;
+        first_microbunch_position;
+        first_microbunch_position_px;
         
         % fields (normalized)
         nlongfield; % longitudinal wakefields (Ez)
@@ -450,7 +453,7 @@ classdef OsirisLoader < handle
                             nr_temp = data.x2_axis;
                             obj.nr = nr_temp + abs(nr_temp(1));
                             obj.ndr = obj.nr(2) - obj.nr(1); % Actually obj.nr(2) should be correct, but ok, just to be sure.
-                            % for some reason, the first element in the r axis is not 0, but a negative value of 1/2 cell or so, so this sets it to 0.
+                            % for some reason, the first element in the r axis is not 0, but a negative value of 1/2 cell, so this sets it to 0.
                             % https://osirisdoc.wimpzilla.ist.utl.pt/dev/index.php/Reference_Guide:_Space
                             obj.n_simulation_window = diff(z_startend);
                             obj.n_propagation_distance = mean(z_startend) - obj.n_simulation_window;

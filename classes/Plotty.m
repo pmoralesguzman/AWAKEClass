@@ -61,13 +61,15 @@ classdef Plotty < handle & OsirisDenormalizer
         fig_number;
         
         % field density plot
-        include_long_profile;
-        line_trans_range;
+        trans_lines_position;
         mirror_flag;
         
         ax_field;
         ax_density;
         tile_handle;
+        include_lineout;
+        trans_lines_2D_flag
+        lines_2D_flag;
         
         % movie
         frame_counter = 0;
@@ -91,8 +93,6 @@ classdef Plotty < handle & OsirisDenormalizer
         waterfall_mat;
         waterfall_handle;
         fig_handle;
-        
-        
         
         struct_movie;
         
@@ -149,7 +149,6 @@ classdef Plotty < handle & OsirisDenormalizer
             p.addParameter('fig_number', 0, @(x) isfloat(x) && x > 0);
             
             % field density plot options
-            p.addParameter('include_long_profile', false, @(x) islogical(x));
             p.addParameter('mirror_flag', true, @(x) islogical(x));
             
             p.KeepUnmatched = true;
@@ -178,7 +177,6 @@ classdef Plotty < handle & OsirisDenormalizer
             obj.make_pause            = p.Results.make_pause;
             obj.plot_scale            = p.Results.plot_scale;
             obj.fig_number            = p.Results.fig_number;
-            obj.include_long_profile  = p.Results.include_long_profile;
             obj.mirror_flag           = p.Results.mirror_flag;
         end % constructor
         
@@ -326,7 +324,7 @@ classdef Plotty < handle & OsirisDenormalizer
             density_plot       = p.Results.density_plot;
             r_plot             = p.Results.r_plot;
             z_plot             = p.Results.z_plot;
-
+            
             switch obj.plot_scale
                 case 'log'
                     density_plot_l = log(density_plot+1);
@@ -351,11 +349,13 @@ classdef Plotty < handle & OsirisDenormalizer
             ind_opaque = max_opaqueness*density_plot_mirrored;
             ind_opaque(density_plot_mirrored > meanstd_density) = max_opaqueness*meanstd_density;
             ind_opaque = ind_opaque/max(ind_opaque,[],'all');
-            
+            if isempty(obj.tile_handle)
+                obj.tile_handle = tiledlayout(1,1);
+            end
             obj.ax_density = axes('parent',obj.tile_handle,'NextPlot','add','color','none');
             % set limits to the axis
             obj.ax_density.XLim = [min(z_plot),max(z_plot)];
-            obj.ax_density.YLim = r_plot;
+            obj.ax_density.YLim = [min(r_plot),max(r_plot)];
             obj.ax_density.XDir = 'reverse';
             
             
@@ -379,29 +379,42 @@ classdef Plotty < handle & OsirisDenormalizer
             p.addParameter('density_plot', 0, @(x) isfloat(x));
             p.addParameter('r_plot', 0, @(x) isfloat(x));
             p.addParameter('z_plot', 0, @(x) isfloat(x));
-            p.addParameter('mirror_flag', true, @(x) isboolean(x));
-            
+            p.addParameter('mirror_flag', true, @(x) islogical(x));
+            p.addParameter('trans_lines_2D_flag', true, @(x) islogical(x));
+            p.addParameter('trans_lines_position', [0,0], @(x) isfloat(x));
+            p.addParameter('ymax_density_profile', 8e14, @(x) isfloat(x));
+            p.addParameter('include_lineout', '2D', @(x) any(ismember(x,{'2D','both','field_lineout','density_profile'})));
+                        
             p.parse(varargin{:});
             
             field_plot         = p.Results.field_plot;
             density_plot       = p.Results.density_plot;
             r_plot             = p.Results.r_plot;
             z_plot             = p.Results.z_plot;
+            
+            ymax_density_profile ...
+                = p.Results.ymax_density_profile;
             obj.mirror_flag    = p.Results.mirror_flag;
+            obj.trans_lines_2D_flag ...
+                               = p.Results.trans_lines_2D_flag;
+            obj.trans_lines_position ...
+                = p.Results.trans_lines_position;
+            obj.include_lineout  = p.Results.include_lineout;
+
             
             if obj.create_movie
-                video = setup_movie();
+                [~,video] = obj.setup_movie();
             end % create movie
             
             for n = 1:length(obj.dump_list)
                 
                 obj.dump = obj.dump_list(n);
                 
-                if field_plot == 0 && density_plot == 0
+                if ((numel(field_plot) == 1) && (numel(density_plot) == 1)) && (field_plot == 0 && density_plot == 0)
                     [field_plot,density_plot,r_plot,z_plot] = obj.load_data_field_density_plot();
                     obj.mirror_flag  = true;
                 end
-
+                
                 % begin the plot
                 
                 if obj.fig_number > 0
@@ -417,96 +430,94 @@ classdef Plotty < handle & OsirisDenormalizer
                     case 'field_lineout'
                         obj.tile_handle = tiledlayout(fig_double,2,1);
                         plot_position = [0.0471    0.2560    0.9081    0.5111];
-                    case 'both_density_field'
+                    case 'both'
                         obj.tile_handle = tiledlayout(fig_double,3,1);
-                         plot_position = [0.0346    0.1231    0.9008    0.7356];
+                        plot_position = [0.0346    0.1231    0.9008    0.7356];
                     otherwise
-                        obj.tile_handle = tiledlayout(fig_double,1,1);   
+                        obj.tile_handle = tiledlayout(fig_double,1,1);
                         plot_position = [0.1 0.1 0.8 0.5];
                 end
-                 obj.tile_handle.TileSpacing = 'compact';
-                    obj.tile_handle.Padding = 'compact';
+                obj.tile_handle.TileSpacing = 'compact';
+                obj.tile_handle.Padding = 'compact';
                 
                 if n == 1
                     fig_double.Units = 'normalized';
-                    fig_double.OuterPosition = plot_position; %[0.1 0.3 0.8 0.5]
+                    fig_double.OuterPosition = plot_position;
                 end
                 
                 if ismember(obj.property_plot,{'wakefields','both'})
-                    obj.plot_field();
+                    obj.plot_field('field_plot',field_plot,'r_plot',r_plot,'z_plot',z_plot);
+                    obj.ax_field.FontSize = 12;                
                 end
                 
                 if ismember(obj.property_plot,{'density','both'})
-                    obj.plot_density();
+                    obj.plot_density('density_plot',density_plot,'r_plot',r_plot,'z_plot',z_plot);
+                    obj.ax_density.FontSize = 12;
                 end
                 
                 if strcmp(obj.property_plot,'both')
                     obj.ax_field.Position = obj.ax_density.Position;
                     linkaxes([obj.ax_field,obj.ax_density],'xy')
                 end
+                
                 if obj.title_flag
                     title(['propagation dist. = ',num2str(obj.propagation_distance/100,3),' m',''])
                 end
                 
-                trans_upper = 0.066;
-                obj.line_trans_range = [0 0.01];%[0.08 0.09];
-                line_flag = true;
-                if line_flag
-                    %                     hold on
-                    yline(obj.line_trans_range(2)*10,'r','LineWidth',1)
-                    yline(-obj.line_trans_range(2)*10,'r','LineWidth',1)
-                    %                    plot(max(z_plot)-[0.003 0.003],r_plot,'LineWidth',2,'k')
-                    %                     xline(max(z_plot)-0.0025,'k','LineWidth',2)
-                    %                     hold off
+                if obj.trans_lines_2D_flag
+                    hold on
+                    yline(obj.trans_lines_position(1)*10,'r','LineWidth',1)
+                    yline(obj.trans_lines_position(2)*10,'r','LineWidth',1)
+                    hold off
                 end
                 
                 ylabel('r (mm)')
                 
-                if obj.include_long_profile
-                    ax_density.XTickLabel = [];
-                    ax_field.XTickLabel = [];
-                    axlongprofile = nexttile;
-                    save_trans_range = obj.trans_range;
-                    % HARDCODED 1111
-                    obj.trans_range = obj.line_trans_range;
-                    obj.ndataOut = obj.(['n',obj.species]);
-                    obj.trim_data(); obj.denorm_density();
+                if ismember(obj.include_lineout,{'density_profile','both'})
+                    
+                    obj.ax_density.XTickLabel = [];
+                    obj.ax_field.XTickLabel = [];
+                                        
                     r_lineplot = linspace(0,max(r_plot),size(density_plot,1));
-                    ir = r_lineplot < obj.line_trans_range(2)*10;
-                    %                     long_profile = obj.cylindrical_radial_integration(obj.r,obj.(obj.species),'just_sum');
+                    ir = (r_lineplot < obj.trans_lines_position(2)*10) & (r_lineplot > obj.trans_lines_position(1)*10);
                     long_profile = obj.cylindrical_radial_integration(r_lineplot(ir),density_plot(ir,:),'just_sum');
-                    %                     plongprofile = plot(obj.dtime+obj.simulation_window-obj.z,long_profile);
-                    plongprofile = plot(linspace(max(z_plot),min(z_plot),length(long_profile)),long_profile);
-                    axlongprofile.XDir = 'reverse';
-                    %                     axlongprofile.XTick = [obj.dtime+obj.simulation_window-obj.z];
-                    %                     axlongprofile.XTickLabel = [obj.dtime+obj.simulation_window-obj.z];
-                    xlim(ax_density.XLim)
-                    ylim([0 8e14]) %2e15
-                    obj.trans_range = save_trans_range;
+                    
+                    ax_longprofile = nexttile;
+                    z_lineplot = linspace(max(z_plot),min(z_plot),length(long_profile));
+                    plongprofile = plot(z_lineplot,long_profile);
+                    ax_longprofile.XDir = 'reverse';
+                    
+                    if strcmp(obj.include_lineout,'density_profile')
+%                         ax_longprofile.XTick = [z_lineplot];
+%                         ax_longprofile.XTickLabel = [z_lineplot];
+                        xlabel('ct - z (cm)');
+                    end
+                    
+                    xlim(obj.ax_density.XLim)
+                    ylim([0 ymax_density_profile])
+                    
                     ylabel({'charge','density (a. u.)'});
-                    xlabel('ct - z (cm)');
-                    ax_density.FontSize = 12;
-                    ax_field.FontSize = 12;
-                    axlongprofile.FontSize = 12;
+                    ax_longprofile.FontSize = 12;
                     
                 end % if include long profile
                 
-                include_field_lineout = true;
-                if include_field_lineout
-                    axlongprofile.XTickLabel = [];
-                    axlineout = nexttile;
+                if ismember(obj.include_lineout,{'field_lineout','both'})
+                    
+                    ax_lineout = nexttile;
                     % HARDCODED 1111
-                    lineout = field_half(3,:);
-                    plineout = plot(obj.dtime+obj.simulation_window-obj.z,lineout);
-                    axlineout.XDir = 'reverse';
-                    %                     axlongprofile.XTick = [obj.dtime+obj.simulation_window-obj.z];
-                    %                     axlongprofile.XTickLabel = [obj.dtime+obj.simulation_window-obj.z];
-                    xlim(ax_density.XLim)
+                    lineout = field_plot(3,:);
+                    plineout = plot(obj.dtime + obj.simulation_window - obj.z,lineout);
+                    ax_lineout.XDir = 'reverse';
+                    xlim(obj.ax_density.XLim);
+                                        
+                    if strcmp(obj.include_lineout,'both')
+%                         ax_longprofile.XTickLabel = [];
+%                         ax_longprofile.XTick = [z_lineplot];
+                        
+                    end
+                    
                     ylabel({'E_z (MV/m)'});
                     xlabel('ct - z (cm)');
-                    ax_density.FontSize = 12;
-                    ax_field.FontSize = 12;
-                    axlineout.FontSize = 12;
                     %                     ylim([-200 200])
                 end % if include long profile
                 
@@ -545,16 +556,12 @@ classdef Plotty < handle & OsirisDenormalizer
                 close(video);
             end % if create movie
             
-        end % field_density_plot
+        end % plot_field_density
         
         function [obj,video] = setup_movie(obj)
-            if obj.include_long_profile
-                long_profile_name = '_longprofile';
-            else
-                long_profile_name = '';
-            end
-            movie_dir = ['movies/field_density',long_profile_name,'/'];
-            struct_dir = ['save_files/field_density',long_profile_name,'/'];
+
+            movie_dir = ['movies/field_density',obj.include_lineout,'/'];
+            struct_dir = ['save_files/field_density',obj.include_lineout,'/'];
             if ~isfolder(movie_dir)
                 mkdir(movie_dir);
             end
@@ -568,14 +575,15 @@ classdef Plotty < handle & OsirisDenormalizer
                 't',num2str(round(obj.trans_range(2))),'.avi']);
             video.FrameRate = 4;
             open(video);
-            obj.struct_movie(length(obj.dump_list)) = struct('cdata',[],'colormap',[]);
+            struct_movie_temp(length(obj.dump_list)) = struct('cdata',[],'colormap',[]);
+            obj.struct_movie = struct_movie_temp;
         end
         
         function [field_plot,density_plot,r_plot,z_plot] = load_data_field_density_plot(obj)
             %initialize variables to make life simpler afterwards (less
             %switches and ifs)
-            field_plot = 0; % ax_field = 0;
-            density_plot = 0; % ax_density = 0;
+            field_plot = 0; 
+            density_plot = 0;
             
             switch obj.property_plot
                 case 'wakefields'
@@ -634,7 +642,6 @@ classdef Plotty < handle & OsirisDenormalizer
             z_plot_temp = obj.dtime+obj.simulation_window-obj.z;
             z_plot = [z_plot_temp(1),z_plot_temp(end)];
         end % load data field density plot
-        
         
         function obj = lineout_plot(obj)
             

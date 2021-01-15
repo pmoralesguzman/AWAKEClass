@@ -15,7 +15,7 @@
 % data directory
 % datadirs = {'gm20'};
 datadirs = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
-datadirs = {'gp20'};
+% datadirs = {'gp20'};
 % parameters
 plasma_density = 1.81e14;
 % plasma_density = 2e14; % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -27,13 +27,13 @@ field = 'e';
 direction = 'z';
 
 % simulation parameters
-dump_list = 0:1:133;
+dump_list = 0:1:100;
 dataformat = 'h5';
 useAvg = true;
 
 % limits
 nslices = 1;
-xi_range = [18 9];
+xi_range = [21 0.0];
 
 % analysis parameters
 scan_type = 'cumulative'; % slice, cumulative
@@ -140,7 +140,7 @@ for d = 1:length(datadirs)
         
         
         AFFT.property = 'fields';
-        AFFT.trans_lims = 0.145;
+        AFFT.trans_lims = 0.005;
         if dump_list(n) <= 100 % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             AFFT.fft_dataload(true);
             prop_distance_m(n) = AFFT.propagation_distance/100; % propagation distance in m
@@ -182,7 +182,7 @@ for d = 1:length(datadirs)
     %
     
     %%
-    figure
+    figure(1)
     trans_lims_m = (trans_lims*10)'; % trans lims in mm
     prop_distance_m_mat = repmat(prop_distance_m,length(trans_lims),1);
     hold on
@@ -190,8 +190,8 @@ for d = 1:length(datadirs)
     AFFT.den2freq();
     scatter(prop_distance_m_mat,peak_freqs_den_plot./AFFT.plasmafreq_GHz,...
         'filled')
-    scatter(prop_distance_m_mat,peak_freqs_fld_plot./AFFT.plasmafreq_GHz,...
-        'd','filled')
+%     scatter(prop_distance_m_mat,peak_freqs_fld_plot./AFFT.plasmafreq_GHz,...
+%         'd','filled')
     plasmafreq_ini = AFFT.plasmafreq_GHz;
     AFFT.plasmaden = plasma_density*(1+grad_sim*prop_distance_m_mat(prop_distance_m_mat < 20)); % !!!!!!!!!!!!!!!!!!!!
     %     plasmaden_ds = zeros(134,1);
@@ -204,11 +204,11 @@ for d = 1:length(datadirs)
     plot(prop_distance_m_mat(prop_distance_m_mat < 13.5),fpe_plot,'LineWidth',2) % !!!!!!!!!!!!!!!!!!!!
     AFFT.plasmaden = plasma_density;
     AFFT.den2freq();
-    hold off
+%     hold off
     %     colormap(jet)
     xlim([0 prop_distance_m(end)])
     drawnow;
-    P = Plotty('plots_dir',['gradsim_paper/fft/fz/',datadir],'plot_name','fvszbothzoom');
+    P = Plotty('plots_dir',['gradsim_test/fft/fz14/',datadir],'plot_name','fvszbothzoom');
     P.fig_handle = gcf;
     %     P.save_plot();
     
@@ -224,26 +224,26 @@ for d = 1:length(datadirs)
     legend('microbunch freq.','wakefields freq.','plasma freq.','location','best')
     %     legend('microbunch freq.','plasma freq.')
     drawnow;
-    P = Plotty('plots_dir',['gradsim_test/fft/fz/',datadir],'plot_name','fvszboth133xx');
+    P = Plotty('plots_dir',['gradsim_test/fft/fz14/all',datadir],'plot_name','fvszboth133xx');
     P.fig_handle = gcf;
     P.save_plot();
     %     close
     
-    figure % waterfall density
-    imagesc(prop_distance_m,AFFT.fft_frequencies(freq_ind)*1e-9/AFFT.plasmafreq_GHz,powerspectra_den);
-    title('microbunch density')
-    ylabel('norm. frequencies')
-    xlabel('z (m)')
-    set(gca,'YDir','normal')
-    colorbar;
-    
-    figure % waterfall fields
-    imagesc(prop_distance_m,AFFT.fft_frequencies(freq_ind)*1e-9/AFFT.plasmafreq_GHz,powerspectra_fld);
-    title('longitudinal wakefields')
-    ylabel('norm. frequencies')
-    xlabel('z (m)')
-    set(gca,'YDir','normal')
-    colorbar;
+%     figure % waterfall density
+%     imagesc(prop_distance_m,AFFT.fft_frequencies(freq_ind)*1e-9/AFFT.plasmafreq_GHz,powerspectra_den);
+%     title('microbunch density')
+%     ylabel('norm. frequencies')
+%     xlabel('z (m)')
+%     set(gca,'YDir','normal')
+%     colorbar;
+%     
+%     figure % waterfall fields
+%     imagesc(prop_distance_m,AFFT.fft_frequencies(freq_ind)*1e-9/AFFT.plasmafreq_GHz,powerspectra_fld);
+%     title('longitudinal wakefields')
+%     ylabel('norm. frequencies')
+%     xlabel('z (m)')
+%     set(gca,'YDir','normal')
+%     colorbar;
     
     
 end % for datadirs

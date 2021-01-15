@@ -62,6 +62,8 @@ classdef AwakeFFT < handle & OsirisDenormalizer
         locs;
         pks;
         
+        center_around_0 = 0;
+        
     end % hidden properties
     
     
@@ -73,10 +75,10 @@ classdef AwakeFFT < handle & OsirisDenormalizer
             
             % selection options
             p.addParameter('on_axis','int', @(x) ismember(x,{'int','intw','sum','lineout'}));
-            p.addParameter('scan_type','cumulative', @(x) ismember(x,{'cumulative','slice'}));
+            p.addParameter('scan_type','cumulative', @(x) ismember(x,{'cumulative','slice','slice_abs'}));
             p.addParameter('trans_lims',1e10, @(x) isfloat(x));
             p.addParameter('xi_lims',1e10, @(x) isfloat(x));
-            p.addParameter('n_zeropadding', 10, @(x) isfloat(x) && (x > 1));
+            p.addParameter('n_zeropadding', 5, @(x) isfloat(x) && (x > 1));
             
             % fft peaks (peak selection)
             p.addParameter('fft_low_lim', 0.5, @(x) isfloat(x) && (x > 0));
@@ -118,21 +120,30 @@ classdef AwakeFFT < handle & OsirisDenormalizer
                 obj.denorm_density();
             end
             
-            obj.fft_densitymatrix = zeros(length(obj.trans_lims),length(obj.z));
+            switch obj.scan_type
+                case {'slice','slice_abs'}
+                    if obj.trans_lims(1) > 0
+                        trans_lims_slice = [0,obj.trans_lims];
+                    elseif obj.trans_lims(1) <= 0
+                        trans_lims_slice = obj.trans_lims;
+                    end
+                    r_max = length(trans_lims_slice) - 1;
+                case 'cumulative'
+                    r_max = length(obj.trans_lims);
+            end
+            
+            obj.fft_densitymatrix = zeros(r_max,length(obj.z));
             obj.fft_fieldmatrix = zeros(length(obj.trans_lims),length(obj.z));
             
-            for r = 1:length(obj.trans_lims)
+            for r = 1:r_max
                 
                 switch obj.scan_type
                     case 'cumulative'
                         ir = abs(obj.r) < obj.trans_lims(r);
                     case 'slice'
-                        if (r == 1) %&& (obj.trans_lims(1)~=0)
-                            trans_lims_slice = [0,obj.trans_lims];
-                            %                         elseif obj.trans_lims(1) == 0
-                            %                             trans_lims_slice = obj.trans_lims;
-                        end
                         ir = (obj.r >= trans_lims_slice(r)) & (obj.r < trans_lims_slice(r+1));
+                    case 'slice_abs'
+                        ir = (abs(obj.r) >= trans_lims_slice(r)) & (abs(obj.r) < trans_lims_slice(r+1));
                 end
                                 
                 switch obj.property
@@ -154,6 +165,7 @@ classdef AwakeFFT < handle & OsirisDenormalizer
                                 obj.fft_densitymatrix(r,:) = obj.(obj.species)(ir(end),:);
                         end % switch on axis
                         
+                        
                     case 'fields'
                         if (~strcmp(obj.on_axis,'lineout') && (r == 1)); warning('Picking lineout'); end
                         ir = find(ir);
@@ -169,8 +181,15 @@ classdef AwakeFFT < handle & OsirisDenormalizer
                         end % switch direction
                 end % switch property
                 
-                
             end % for trans lims
+            
+            if obj.center_around_0 == 1
+                fft_densitymatrix_smooth = smoothdata(obj.fft_densitymatrix,2,'gaussian',101);
+                aa = obj.fft_densitymatrix;
+                                obj.fft_densitymatrix = obj.fft_densitymatrix - fft_densitymatrix_smooth;
+%                 bb = obj.fft_densitymatrix - fft_densitymatrix_smooth;
+                a = 1;
+            end % center_around_0
             
         end % fft_dataload
         

@@ -10,28 +10,31 @@
 %
 % Work in progress
 %
-% P. I. Morales Guzman
+% EDA. I. Morales Guzman
 % Last update: 05/10/2020
 %________________________________________________________________________
 
-close all;
+% close all;
 clear;
 
-% load experimental data from Fabian
 freqs_exp      = load('gradsim_freqs.txt');
 grads_exp      = freqs_exp(:,1)/10;
 freqs_exp(:,1) = [];
-% 1: full green, 2: CTR black, 3: narrow red, 4: wide blue
 
 % data directory
+datadirs_exp    = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
 datadirs    = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
 dataformat  = 'mat';
+
+dataformats  = {'h5','h5','h5','mat','mat','mat','mat','mat','mat'};
+dataformats  = {'mat','mat','mat','mat','mat','mat','mat','mat','mat'};
+
 useAvg      = false;
-dump        = 132;
+dump        = 133;
 
 
 % save directory
-plots_dir           = ['AAC/fft/rg/',''];
+plots_dir           = ['gradsim_paper/fft/rg/',''];
 plot_name_suffix    = [''];
 save_format         = {'png','eps','fig'};
 
@@ -39,18 +42,13 @@ save_format         = {'png','eps','fig'};
 plasma_density  = 1.81e14;
 property        = 'density';
 species         = 'proton_beam';
-field           = 'e';
-direction       = 'z';
-wakefields_direction = 'long';
 grads_sim = [-20,-15,-10,-5,0,5,10,15,20]/10;
 
 % analysis
-xi_range        = [18 0.74];
+xi_range        = [14 0.38]; %384
 % trans_range is set by trans_lims in this analysis
-plasma_radius   = 0.15; % cm
-nslices         = 2;
 
-scan_type       = 'cumulative'; % slice, cumulative
+scan_type       = 'slice'; % slice, cumulative
 on_axis         = 'sum'; % int, sum, intw, lineout
 freq_range      = [107 128]; % GHz ? maybe norm. to plasma freq
 max_dotsize     = 720;
@@ -59,16 +57,22 @@ showChargeinDotSize = true; % show dot size to reflect charge
 
 % switches
 plot_powerspectra   = false;
-save_plot_flag      = true;
+save_plot_flag      = false;
 normalized_frequency_switch = true;
 
 % calculated parameters
-trans_lims      = [0.0868 0.2604];
+trans_lims      = [0.0586/3 0.0586 3*0.0586];
+trans_lims      = [0.0586/3 4*0.0586];
+
+nslices         = length(trans_lims);
+
+
 % measured radius = 0.66 mm,
 % first exp limit = 0.868 mm
 % last exp limit 2.604 mm
-% theo radius at plasma exit = 0.0455, 0.0455*1.3152 = 0.0598 cm (not used
-% anymore)
+% theo radius at plasma exit = 0.0455
+% theo radius at OTR = 0.02*sqrt(1+13.5^2/4.9^2)
+
 
 % colors
 lincolngreen = [20,82,20]/256;
@@ -82,28 +86,76 @@ charge_in_slice = ones(nslices,length(dump));
 AFFT = AwakeFFT(...
     'datadir',datadirs{1},'dataformat',dataformat,'useAvg',useAvg,'dump',dump,...
     'plasmaden',plasma_density,'property',property,'species',species,...
-    'field',field,'direction',direction,'wakefields_direction',wakefields_direction,...
     'xi_range',xi_range,'trans_lims',trans_lims,...
-    'scan_type',scan_type,'on_axis',on_axis);
+    'scan_type',scan_type,'on_axis','sum');
 
-P = Plotty('plots_dir',plots_dir,'plot_name',['fvsg',''],'plasmaden',plasma_density,'save_flag',save_plot_flag);
+AFFT2 = AwakeFFT(...
+    'datadir',datadirs_exp{1},'dataformat',dataformat,'useAvg',useAvg,'dump',dump,...
+    'plasmaden',plasma_density,'property',property,'species',species,...
+    'xi_range',xi_range,'trans_lims',trans_lims,...
+    'scan_type','slice_abs','on_axis','sum');
+
+P = Plotty('plots_dir',plots_dir,'plot_name',['fvsg',''],'plasmaden',plasma_density,'save_flag',save_plot_flag,...
+    'datadir',datadirs{1});
+EDA = ExperimentalDataAnalyser('plasmaden',plasma_density,'datadir',datadirs_exp{1});
+EDA.loadSCdata();
+
+AFFT2.dr = EDA.SCI_yaxis(2) - EDA.SCI_yaxis(1);
 
 
 for d = 1:length(datadirs)
     
-    AFFT.datadir = datadirs{d};
+    if d == 2
+        EDA.datadir = datadirs_exp{d-1}; EDA.loadSCdata();
+    else
+        EDA.datadir = datadirs_exp{d}; EDA.loadSCdata();
+    end
     
-    AFFT.fft_dataload(true);
+%     xi_range = [14 EDA.first_microbunch_position*1e-12*EDA.c_cm];
+    xi_range_save(d) = xi_range(2);
+    AFFT.datadir = datadirs{d};
+    AFFT.dataformat = dataformats{d};
+    
+    timetemp = load([datadirs{d},'densitytimeprofile.mat']);
+    simtimeprofile = timetemp.densitymatrix;
+    z_sim = linspace(timetemp.xlims(1),timetemp.xlims(2),size(simtimeprofile,2));
+    r_sim = linspace(0,timetemp.ylims(2),size(simtimeprofile,1));
+    AFFT.r = r_sim;
+    zz_sim = z_sim*1e-12*EDA.c_cm;
+    
+    z_ind = zz_sim > xi_range(2) & ... %large
+        zz_sim <= xi_range(1); % small
+    AFFT.z = zz_sim(z_ind);
+    AFFT.proton_beam = simtimeprofile(:,z_ind);
+    AFFT.dr = r_sim(2)-r_sim(1);
+    
+    AFFT.center_around_0 = 0;
+    AFFT.fft_dataload(false);
+    xx = AFFT.fft_densitymatrix;
+    
+    AFFT2.r = EDA.SCI_yaxis;
+    % trim
+    z = EDA.SCI_xaxis*1e-12*EDA.c_cm;
+    
+    z_ind = z > xi_range(2) & ... %large
+        z <= xi_range(1); % small
+    AFFT2.z = z(z_ind);
+    
+    AFFT2.proton_beam = EDA.SCI(:,z_ind);
+    AFFT2.center_around_0 = 1;
+    AFFT2.fft_dataload(false);
     prop_distance_m = AFFT.propagation_distance/100; % propagation distance in m
     
     % calculates fft and gives AFFT.fft_frequencies
     % and AFFT.fft_powerspectrum (_den or _fld)
-    AFFT.get_fft();
-    
+    AFFT.get_fft(); AFFT2.get_fft();
+    yy = AFFT2.fft_densitymatrix;
     switch AFFT.property
         case 'density'
-            charge_in_slice = AFFT.dz*sum(AFFT.fft_densitymatrix,2);
+%             charge_in_slice = AFFT.dz*sum(AFFT.fft_densitymatrix,2);
             powerspectrum_in_slice = AFFT.fft_powerspectrum_den;
+            powerspectrum_in_slice2 = AFFT2.fft_powerspectrum_den;
+            
         case 'fields'
             powerspectrum_in_slice = AFFT.fft_powerspectrum_fld;
     end % switch property
@@ -111,12 +163,15 @@ for d = 1:length(datadirs)
     for r = 1:nslices
         
         AFFT.fft_peaks(powerspectrum_in_slice(r,:));
+        AFFT2.fft_peaks(powerspectrum_in_slice2(r,:));
+
         % maxloc is the location in freq space of the ampltiude peak in
         % the power spectrum
         if isempty(AFFT.maxloc)
             peak_freqs(r,d) = 0;
         else
             peak_freqs(r,d) = AFFT.maxloc;
+            peak_freqs2(r,d) = AFFT2.maxloc;
         end
         
         %%% Plots of the power spectrum.
@@ -131,7 +186,7 @@ for d = 1:length(datadirs)
             
             fig_powerspectra = figure('visible','off');
             plot(fft_freqs_plot,amplitude_plot,'LineWidth',2);
-            title(['power spec. (prop. dist. = ',...
+            title(['power spec. (proEDA. dist. = ',...
                 num2str(AFFT.propagation_distance/100,2),'m; r = [',...
                 num2str(trans_lims_plot_title(r)*10,2),', ',num2str(trans_lims_plot_title(r+1)*10,2),']mm)']);
             ylabel('amplitude');
@@ -153,7 +208,7 @@ for d = 1:length(datadirs)
             
             figy = figure('visible','off');
             plot(z_plot,density_plot,'LineWidth',2);
-            title(['long. den. distributon (prop. dist. = ',...
+            title(['long. den. distributon (proEDA. dist. = ',...
                 num2str(AFFT.propagation_distance/100,2),'m; r = [',...
                 num2str(trans_lims_plot_title(r)*10,2),', ',num2str(trans_lims_plot_title(r+1)*10,2),']mm)']);
             ylabel('density (1/cm)');
@@ -170,6 +225,10 @@ for d = 1:length(datadirs)
         
     end % for nslices
     
+    if strcmp(datadirs{d},'gm10')
+       a = 1; 
+    end
+    
     if showChargeinDotSize
         dotsize = max_dotsize*charge_in_slice/max(charge_in_slice,[],'all');
         dotsize(dotsize==0) = nan;
@@ -177,31 +236,32 @@ for d = 1:length(datadirs)
 end % for datadirs
 
 peak_freqs_plot = peak_freqs;
+freqs_exp = peak_freqs2(:,[1,3:9]);
 
 %% plotty
-fig_charge = figure;
+fig_fvsrg = figure();
+ax_fvsrg = axes('Parent',fig_fvsrg);
 hold on
 if normalized_frequency_switch
     marker_size = 10;
-    
     % simulation
     plot_sim(1) = plot(grads_sim,... % narrow trans. range
         peak_freqs_plot(1,:)/AFFT.plasmafreq_GHz,'-o','markerSize',marker_size);
     set(plot_sim(1), 'markerfacecolor', get(plot_sim(1), 'color'),'LineWidth',2);
     plot_sim(2) = plot(grads_sim,... % wide trans. range
-        peak_freqs_plot(2,:)/AFFT.plasmafreq_GHz,'-s','markerSize',marker_size);
+        peak_freqs_plot(end,:)/AFFT.plasmafreq_GHz,'-s','markerSize',marker_size);
     set(plot_sim(2), 'markerfacecolor', get(plot_sim(2), 'color'),'LineWidth',2);
     
     % experiment
     plot_exp(1) = plot(grads_exp,... % narrow trans. range
-        freqs_exp(:,4)/AFFT.plasmafreq_GHz,'-^','markerSize',marker_size,'LineWidth',2,...
+        freqs_exp(1,:)/AFFT.plasmafreq_GHz,'-^','markerSize',marker_size,'LineWidth',2,...
         'color',lincolngreen);
     plot_exp(2) = plot(grads_exp,... % wide trans. range
-        freqs_exp(:,3)/AFFT.plasmafreq_GHz,'-d','markerSize',marker_size,'LineWidth',2);
+        freqs_exp(end,:)/AFFT.plasmafreq_GHz,'-d','markerSize',marker_size,'LineWidth',2);
     
     ylim(freq_range/AFFT.plasmafreq_GHz)
     
-    ylabel({'normalized microbunch train frequency (a. u.)'})
+    ylabel({'normalized modulation frequency (a. u.)'})
     
     legend([plot_sim(1) plot_sim(2) plot_exp(1) plot_exp(2)],...
         'Simulation narrow window','Simulation wide window',...
@@ -217,7 +277,7 @@ else
         peak_freqs_plot,dotsize,'filled');
     %         ylim([min(peak_freqs_plot)*0.99,max(peak_freqs_plot)*1.01])
     ylim(freq_range);
-    ylabel('freq. (GHz)')
+    ylabel('frequency (GHz)')
 end % if normalized frequency switch
 
 %     ax_handle = gca;
@@ -229,7 +289,7 @@ hold off
 grid on
 xlabel('gradient (%/m)')
 
-P.save_plot(fig_charge);
+P.save_plot(fig_fvsrg);
 
 
 

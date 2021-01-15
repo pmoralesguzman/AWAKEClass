@@ -83,11 +83,19 @@ classdef ExperimentalDataLoader < handle & OsirisDenormalizer
         
         
         function loadSCdata_nonaligned(obj)
-            
-            SCdata_filename = ['loading_files/',obj.datadir,'_stitch','.txt'];
-            fileID = fopen(SCdata_filename,'r');
-            formatSpec = '%f';
-            temp_SC = fscanf(fileID,formatSpec);
+            exp_data_format = 'mat'; % 'txt';
+            switch exp_data_format
+                case 'txt'
+                    SCdata_filename = ['loading_files/',obj.datadir,'_stitch','.txt'];
+                    fileID = fopen(SCdata_filename,'r');
+                    formatSpec = '%f';
+                    temp_SC = fscanf(fileID,formatSpec);
+                    save(['loading_files/',obj.datadir,'_stitch.mat'],'temp_SC')
+                case 'mat'
+                    SCdata_filename = ['loading_files/',obj.datadir,'_stitch','.mat'];
+                    load_temp = load(SCdata_filename);
+                    temp_SC = load_temp.temp_SC;
+            end
             verticalRes = 672;
             
             % laser positions above
@@ -96,53 +104,43 @@ classdef ExperimentalDataLoader < handle & OsirisDenormalizer
                 case 'gm20'
                     horizontalRes_gm20 = 1696;
                     obj.SCI_nonaligned = flipud(rot90(reshape(temp_SC,horizontalRes_gm20,verticalRes),3));
-                   
-                    
 %                     obj.SCI = temp_SC2(:,44:1679);
 %                     obj.SCcenter_px = 346;
-%                     obj.SCcenter = obj.SCcenter_px*obj.px2cm; %cm
                 case 'gm10'
                     horizontalRes_gm10 = 1682;
                     obj.SCI_nonaligned = flipud(rot90(reshape(temp_SC,horizontalRes_gm10,verticalRes),3)); % 672,1682
 %                     obj.SCI = temp_SC2(:,23:1658);
 %                     obj.SCcenter_px = 342;
-%                     obj.SCcenter = obj.SCcenter_px*obj.px2cm; %cm
                 case 'gm5'
                     horizontalRes_gm5 = 1657;
                     obj.SCI_nonaligned = flipud(rot90(reshape(temp_SC,horizontalRes_gm5,verticalRes),3));
 %                     obj.SCI = temp_SC2(:,9:1644);
 %                     obj.SCcenter_px = 336;
-%                     obj.SCcenter = obj.SCcenter_px*obj.px2cm; %cm
                 case 'g0'
                     horizontalRes_gm0 = 1636;
                     obj.SCI_nonaligned = flipud(rot90(reshape(temp_SC,horizontalRes_gm0,verticalRes),3));
 %                     obj.SCI = temp_SC2(:,1:1636);
 %                     obj.SCcenter_px = 335;
-%                     obj.SCcenter = obj.SCcenter_px*obj.px2cm; %cm
                 case 'gp5'
                     horizontalRes_gp5 = 1662;
                     obj.SCI_nonaligned = flipud(rot90(reshape(temp_SC,horizontalRes_gp5,verticalRes),3));
 %                     obj.SCI = temp_SC2(:,12:1647);
 %                     obj.SCcenter_px = 334;
-%                     obj.SCcenter = obj.SCcenter_px*obj.px2cm; %cm
                 case 'gp10'
                     horizontalRes_gp10 = 1650;
                     obj.SCI_nonaligned = flipud(rot90(reshape(temp_SC,horizontalRes_gp10,verticalRes),3));
 %                     obj.SCI = temp_SC2(:,13:1648);
 %                     obj.SCcenter_px = 334;
-%                     obj.SCcenter = obj.SCcenter_px*obj.px2cm; %cm
                 case 'gp15'
                     horizontalRes_gp15 = 1671;
                     obj.SCI_nonaligned = flipud(rot90(reshape(temp_SC,horizontalRes_gp15,verticalRes),3));
 %                     obj.SCI = temp_SC2(:,21:1656);
 %                     obj.SCcenter_px = 334;
-%                     obj.SCcenter = obj.SCcenter_px*obj.px2cm; %cm
                 case 'gp20'
                     horizontalRes_gp20 = 1869;
                     obj.SCI_nonaligned = flipud(rot90(reshape(temp_SC,horizontalRes_gp20,verticalRes),3));
 %                     obj.SCI = temp_SC2(:,200:1835);
 %                     obj.SCcenter_px = 335;
-%                     obj.SCcenter = obj.SCcenter_px*obj.px2cm; %cm
             end % switch datadir
             
 

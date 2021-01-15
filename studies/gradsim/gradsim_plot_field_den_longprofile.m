@@ -9,7 +9,7 @@
 % Work in progress
 %
 % P. I. Morales Guzman
-% Last update: 05/08/2020
+% Last update: 10/01/2021
 %________________________________________________________________________
 
 % close all;
@@ -71,11 +71,10 @@ P = Plotty('datadir',datadir,'dataformat',dataformat,...
     'plasmaden',plasmaden,'trans_range',trans_range,'xi_range',xi_range,...
     'wakefields_direction',wakefields_direction,'species',species,...
     'property_plot',property_plot,'denormalize_flag',denormalize_flag,...
-    'make_pause',make_pause,'fig_number',fig_number,...
-    'include_long_profile',true);
+    'make_pause',make_pause,'fig_number',fig_number);
 
 figure(fig_number);
-P.field_density_plot();
+P.plot_field_density('trans_lines_position',[-0.05,0.05]);
 
 % yline(0.536,'r','LineWidth',1)
 % yline(-0.536,'r','LineWidth',1)

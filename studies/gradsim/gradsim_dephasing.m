@@ -42,7 +42,7 @@ OPA = OsirisPhaseAnalysis('datadir',datadirs{1},...
 
 dephasing_z = zeros(length(datadirs),length(OPA.dephasing_line));
 dephasing_lines = dephasing_z;
-
+%% 
 fig_dephase = figure(1);
 fig_dephase.OuterPosition = [100 100 1200 400];
 colororder(cc);

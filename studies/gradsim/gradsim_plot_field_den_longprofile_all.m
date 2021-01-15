@@ -16,15 +16,18 @@
 clear;
 
 % file location variables
-datadirs = {'g0'}; %{'gm10','g0','gp10'};
-datadirs_sim = {'g0'}; %{'gm10','g0','gp10'};
+datadirs = {'gm20','g0','gp10'};
+datadirs_sim = {'gm20','g0','gp10'};
+
+datadirs = {'gm20'};
+datadirs_sim = {'gm20'};
 
 dataformat = 'mat';
 useAvg = false;
 dump = 100;
 
 % saving data
-save_flag = true;
+save_flag = false;
 save_format = {'pdf','png'};
 
 % plasma properties
@@ -61,8 +64,8 @@ fig_number = 3;
 letters = {'a) g = -0.93 %/m','b) g = -1 %/m','c) g = 0.03 %/m',...
     'd) g = 0 %/m','e) g = 0.87 %/m','f) g = 1 %/m','g)','h)','i)','j)','k)','l)'};
 
-letters = {'a) g = 0.03 %/m',...
-    'b) g = 0 %/m'};
+% letters = {'a) g = 0.03 %/m',...
+%     'b) g = 0 %/m'};
 
 % directory to save the plots
 % plots_dir = ['gradsim_paper/','field_density_longprofile_all/'];
@@ -76,8 +79,7 @@ P = Plotty('datadir',datadirs{1},'dataformat',dataformat,...
     'plasmaden',plasmaden,'trans_range',trans_range,'xi_range',xi_range,...
     'wakefields_direction',wakefields_direction,'species',species,...
     'property_plot',property_plot,'denormalize_flag',denormalize_flag,...
-    'make_pause',make_pause,'fig_number',fig_number,...
-    'include_long_profile',true,'title_flag',false);
+    'make_pause',make_pause,'fig_number',fig_number,'title_flag',false);
 
 fig_handle = figure(fig_number);
 
@@ -104,7 +106,7 @@ for d = 1:length(datadirs)
     r_plot = EDA.SCI_yaxis*10; %mm
     
     %first manual trimming
-    ind_r = ((r_plot - EDA.SCI_center*10) > -trans_range(2)*10) & ((r_plot - EDA.SCI_center*10) < trans_range(2)*10);
+    ind_r = ( r_plot > -trans_range(2)*10) & (r_plot < trans_range(2)*10);
     density_plot = EDA.SCI(ind_r,:);
     r_plot = r_plot(ind_r);
     
@@ -122,14 +124,14 @@ for d = 1:length(datadirs)
     end
     ind_opaque = ind_opaque/max_indopaque;
 
-    if P.include_long_profile
+%     if P.include_long_profile
         ax_density_exp(d) = nexttile;
-    else
-        ax_density_exp(d) = axes('parent',fig_handle,'NextPlot','add','color','none');
-    end
+%     else
+%         ax_density_exp(d) = axes('parent',fig_handle,'NextPlot','add','color','none');
+%     end
     % set limits to the axis
     ax_density_exp(d).XLim = xi_range; %[min(P.SCxaxis),max(P.SCxaxis)];
-    ax_density_exp(d).YLim = [min(r_plot),max(r_plot)]-EDA.SCI_center*10;
+    ax_density_exp(d).YLim = [min(r_plot),max(r_plot)];
     ax_density_exp(d).XDir = 'reverse';
     ax_density_exp(d).Box = 'on';
 %     ax_density_exp(d).YTickMode = 'manual';
@@ -137,7 +139,7 @@ for d = 1:length(datadirs)
     
     
     %----------------- PLOT EXP 2D
-    imagesc(ax_density_exp(d),'XData',z_plot,'YData',r_plot-EDA.SCI_center*10,'CData',double(density_plot>0),'alphadata',ind_opaque);
+    imagesc(ax_density_exp(d),'XData',z_plot,'YData',r_plot,'CData',double(density_plot>0),'alphadata',ind_opaque);
     grad = colorGradient([1 1 1],[0 0 0],2);
     colormap(ax_density_exp(d),grad);
     text(0.025,hletter,letters{2*(d-1)+1},'Units','normalized','FontSize',12)
@@ -155,7 +157,7 @@ for d = 1:length(datadirs)
     
     ax_density_exp(d).XTickLabel = [];
 %     ax_density_exp(d).XTick = [];
-    %     ax_density_exp(d).YTickLabel = [];
+%         ax_density_exp(d).YTickLabel = [];
             ax_density_exp(d).YTick = [-1,0,1];
 %                 ax_density_exp(d).LineWidth = 1;
 
@@ -165,7 +167,7 @@ for d = 1:length(datadirs)
     axlongprofile_exp(d) = nexttile;
     % manual triming of experimental data
     
-    ind_r = (r_plot - EDA.SCI_center*10 >= -sigma_rexp) & (r_plot - EDA.SCI_center*10 < sigma_rexp);
+    ind_r = (r_plot >= -sigma_rexp) & (r_plot < sigma_rexp);
     density_trim = density_plot(ind_r,:);
     r_plot = r_plot(ind_r);
     %end of manual triming
@@ -214,11 +216,11 @@ for d = 1:length(datadirs)
         max_indopaque_exp = max(ind_opaque,[],'all');
     end
     ind_opaque = ind_opaque/max_indopaque_exp;
-    if P.include_long_profile
+%     if P.include_long_profile
         ax_density_sim(d) = nexttile;
-    else
-        ax_density_sim(d) = axes('parent',fig_handle,'NextPlot','add','color','none');
-    end
+%     else
+%         ax_density_sim(d) = axes('parent',fig_handle,'NextPlot','add','color','none');
+%     end
     % set limits to the axis
     ax_density_sim(d).XLim = xi_range; %[min(P.SCxaxis),max(P.SCxaxis)];
     ax_density_sim(d).YLim = [-max(r_plot),max(r_plot)];
@@ -238,7 +240,7 @@ for d = 1:length(datadirs)
     yline(-sigma_rexp,'r','LineWidth',1)
     
     ax_density_sim(d).XTickLabel = [];
-%     ax_density_sim(d).XTick = [];
+    ax_density_sim(d).XTick = [];
 %         ax_density_sim(d).YTickLabel = [];
         ax_density_sim(d).YTick = [-1,0,1];
 
@@ -280,5 +282,5 @@ drawnow;
 pause(1);
 
 P.fig_handle = fig_handle;
-P.plot_name = 'g0density'; %'allprofiles';
+P.plot_name = 'allprofiles';
 P.save_plot();

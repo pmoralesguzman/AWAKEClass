@@ -15,10 +15,9 @@
 clear;
 
 % data directory
-datadirs = {'gm20d2'};
-datadir_exp = {'gm20'};
+datadirs = {'gm20'};
 % datadirs = {'gm20','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
-dataformat  = 'h5';
+dataformat  = 'mat';
 useAvg      = false;
 dump        = 133;
 
@@ -33,13 +32,14 @@ property        = 'density';
 species         = 'proton_beam';
 
 % analysis
-xi_range        = [14 0.656]; % cm % 2nd microbunch end = 0.656 cm, 1st 384
-trans_lims_sim     = 0.018*(1:11);
-trans_lims_exp     = 0.018*(-11:11);
+xi_range        = [14 0.38]; % cm % 2nd microbunch end = 0.656 cm, 1st 38
+xi_range_exp        = [14 0.38]; % cm % 2nd microbunch end = 0.656 cm, 1st 38
+trans_lims_sim     = 0.02*(1:8);
+trans_lims_exp     = 0.02*(-8:8);
 nslices_sim = length(trans_lims_sim); % does not include 0
 nslices_exp = length(trans_lims_exp) - 1; % includes a 0
 
-trans_upperlimit   = 0.2; % cm
+trans_upperlimit   = 0.16; % cm
 
 
 scan_type       = 'slice'; % slice, cumulative
@@ -67,13 +67,13 @@ for d = 1:length(datadirs)
     AFFT2 = AwakeFFT(...
         'datadir',datadirs{1},'dataformat',dataformat,'useAvg',useAvg,'dump',dump,...
         'plasmaden',plasma_density,'property',property,'species',species,...
-        'xi_range',xi_range,'trans_lims',trans_lims_exp,...
+        'xi_range',xi_range_exp,'trans_lims',trans_lims_exp,...
         'scan_type',scan_type,'on_axis',on_axis);
     
     
     P = Plotty('plasmaden',plasma_density,'plots_dir',plots_dir,'save_format',save_format,...
         'datadir',datadirs{1});
-    EDA = ExperimentalDataAnalyser('datadir',datadir_exp{1});
+    EDA = ExperimentalDataAnalyser('datadir',datadirs{1});
     EDA.loadSCdata();
     
     AFFT2.dr = EDA.SCI_yaxis(2) - EDA.SCI_yaxis(1);
@@ -93,8 +93,8 @@ for d = 1:length(datadirs)
         % trim
         z = EDA.SCI_xaxis*1e-12*P.c_cm;
         
-        z_ind = z > xi_range(2) & ... %large
-            z <= xi_range(1); % small
+        z_ind = z > xi_range_exp(2) & ... %large
+            z <= xi_range_exp(1); % small
         AFFT2.z = z(z_ind);
         
         AFFT2.proton_beam = EDA.SCI(:,z_ind);
@@ -157,46 +157,12 @@ for d = 1:length(datadirs)
         dotsize(dotsize == 0) = nan;
     end % end if charge dot size
 
-    peak_plot = peak_freqs2;
-    
-    %     hold on
-    
-    %     if normalized_frequency_switch
-    %         scatter(trans_lims_mm,...
-    %             peak_freqs/AFFT.plasmafreq_GHz,dotsize,'filled');
-    %         scatter(trans_lims_mm,peak_freqs2/AFFT.plasmafreq_GHz,dotsize,'x','LineWidth',1); % experiment
-    %         plot(xlimits,freq_widerange*ones(1,2)/AFFT.plasmafreq_GHz,'--b','LineWidth',2);
-    %         freq_lims = [0.98*min([peak_freqs2';peak_freqs]/AFFT.plasmafreq_GHz),...
-    %             1.02*max([peak_freqs2';peak_freqs]/AFFT.plasmafreq_GHz)];
-    %         ylim(freq_lims)
-    %         ylabel({'transverse slice frequency /','plasma frequency at z = 0 m'})
-    %         set(gca,'xdir','reverse')
-    %     else
-    %         scatter(trans_lims_mm,peak_freqs,dotsize,'filled'); % simulation
-    %         scatter(exp_translims,exp_freqs,dotsize,'x','LineWidth',1); % experiment
-    %         plot(xlimits,freq_widerange*ones(1,2),'--b','LineWidth',2);
-    %         freq_lims = [0.98*min([peak_freqs2';peak_freqs]),1.02*max([peak_freqs2';peak_freqs])];
-    %         ylim(peak_freqs);
-    %         ylabel('freq. (GHz)')
-    %     end % if normalized frequency switch
-    %
-    %     hold off
-    %     grid on
-    %     xlim(xlimits)
-    %     xlabel('r (mm)')
-    %     legend('simulation','experiment','location','best');
-    %     drawnow;
-    %
-    %     P.plot_name = plot_name;
-    %     P.fig_handle = fig_fvsr;
-    %     P.save_plot();
-    
-    
-    
 end % for datadirs
 
-fig_fvsr = figure;
-
+fig_fvsr = figure();
+fig_fvsr.OuterPosition = [336.1111  444.5556  862.2222  409.3333];
+ax_fvsr = axes('Parent',fig_fvsr);
+ax_fvsr.FontSize = 12;
 % plot limits
 trans_lims_mm = (10*trans_lims_sim)'; % trans lims in mm
 xlimits = [-1.01*trans_lims_mm(end) 1.01*trans_lims_mm(end)];
@@ -205,7 +171,7 @@ hold on
 scatter([flipud(-trans_lims_mm);trans_lims_mm],...
     [flipud(peak_freqs);peak_freqs]/AFFT.plasmafreq_GHz,[dotsize;dotsize],'filled');
 
-scatter([flipud(-trans_lims_mm);trans_lims_mm],peak_plot/AFFT.plasmafreq_GHz,...
+scatter([flipud(-trans_lims_mm);trans_lims_mm],peak_freqs2/AFFT.plasmafreq_GHz,...
     [dotsize;dotsize],'x','LineWidth',1); % experiment
 plot(xlimits,freq_widerange*ones(1,2)/AFFT.plasmafreq_GHz,'--b','LineWidth',2);
 
@@ -214,9 +180,9 @@ hold off
 freq_lims = [0.98*min(peak_freqs/AFFT.plasmafreq_GHz),...
     1.02*max(peak_freqs/AFFT.plasmafreq_GHz)];
 ylim(freq_lims); xlim(xlimits);
-ylabel({'normalized transverse slice frequency (a.u.)'})
-xlabel('r (mm)')
-legend('simulation','experiment','location','best');
+ylabel({'transverse slice','normalized frequency (a.u.)'})
+xlabel('x (mm)')
+legend('simulation','experiment','location','southeast');
 P.plot_name = plot_name;
 P.fig_handle = fig_fvsr;
 P.save_plot();

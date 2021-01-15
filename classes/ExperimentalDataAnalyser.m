@@ -33,18 +33,22 @@ classdef ExperimentalDataAnalyser < handle & ExperimentalDataLoader
         
     end % properties
     
-    properties (Hidden)
+    properties
         
         
         % output
         
         SCI;
+        % output of gaussian fits
         SCI_IF_px; % ionization front position in pixels
         SCI_center_px; % cunch center position in pixels
         SCI_center;
+        SCI_width_px; % rms width in pixels
+        SCI_width;
         
         SCI_yaxis;
         SCI_xaxis;
+
         
     end % hidden properties
     
@@ -61,10 +65,6 @@ classdef ExperimentalDataAnalyser < handle & ExperimentalDataLoader
             
             % comments
             p.addParameter('sigma_z', 7, @(x) isfloat(x) && x > 0);
-            p.addParameter('bunch_center', 7, @(x) isfloat(x) && x > 0);
-            p.addParameter('dump_list', 1:100, @(x) isfloat(x) && all(x >= 0));
-            p.addParameter('search_type', 'max', @(x) ismember(x,{'max','mean'}));
-            
             
             p.KeepUnmatched = true;
             p.parse(varargin{:});
@@ -77,7 +77,7 @@ classdef ExperimentalDataAnalyser < handle & ExperimentalDataLoader
             
             obj = obj@ExperimentalDataLoader(unmatched{:}); %Parse to superclass OsirisDenormalizer.m
             
-            obj.sigma_z                     = p.Results.sigma_z;
+            obj.sigma_z  = p.Results.sigma_z;
             
             
             
@@ -140,16 +140,40 @@ classdef ExperimentalDataAnalyser < handle & ExperimentalDataLoader
             % place ionization front to match t = 0 from below
             obj.SCI = obj.SCI_nonaligned(:,obj.SCI_IF_px-1500+1:obj.SCI_IF_px+136);
             
+            % calculate center
+            obj.calculate_SCIcenter();
             
+            % calculate width
+            obj.calculate_SCIwidth();
+            
+            % calculate first microbunch position
+            
+            microbunch_lineout = sum(obj.SCI(obj.SCI_center_px+(-obj.SCI_width_px:obj.SCI_width_px),1:1500));
+            [~,pos] = findpeaks(-microbunch_lineout(1:1500-5));
+            obj.first_microbunch_position_px = 1500 - pos(end);
+            obj.first_microbunch_position = obj.first_microbunch_position_px*obj.px2ps;
+
+            % axes
+            
+            obj.SCI_yaxis = ((1:1:672)-obj.SCI_center_px)*obj.px2cm; %cm
+            obj.SCI_xaxis = linspace(1500,-136,1636)*obj.px2ps; %ps
+            
+        end % loadSCdata
+        
+        function obj = calculate_SCIcenter(obj)
+
             % calculate center according to modulated part
             
             % get modulated part
             modulated_bunch = obj.SCI_nonaligned(:,1:obj.SCI_IF_px);
+%             modulated_bunch = obj.SCI_nonaligned(:,obj.SCI_IF_px:end);
             modulated_bunch_sum = sum(modulated_bunch,2);
             bunch_center_y = 1:length(modulated_bunch_sum);
             
             start_points_bunch = [max(modulated_bunch_sum),length(modulated_bunch_sum)/2,...
                 length(modulated_bunch_sum)/3,modulated_bunch_sum(end)];
+            
+            gauss_eqn = 'a*exp(-((x-b)/c)^2)+d';
             
             % gaussian fit for center
             bunch_center_fit = fit(bunch_center_y',modulated_bunch_sum,...
@@ -168,14 +192,46 @@ classdef ExperimentalDataAnalyser < handle & ExperimentalDataLoader
             end
             
             obj.SCI_center_px = round(bunch_center_fit.b);
+%             obj.SCI_center_px = 338; % gm20 = 338;
             obj.SCI_center = obj.SCI_center_px*obj.px2cm;
+                            
+        end % calculate SCI center
+        
+        function obj = calculate_SCIwidth(obj)
+
+            % calculate center according to modulated part
             
-            % axes
+            % get modulated part
+            unmodulated_bunch = obj.SCI_nonaligned(:,obj.SCI_IF_px:end);
+            unmodulated_bunch_sum = sum(unmodulated_bunch,2);
+            bunch_center_y = 1:length(unmodulated_bunch_sum);
             
-            obj.SCI_yaxis = ((0:1:671)-obj.SCI_center_px)*obj.px2cm; %cm
-            obj.SCI_xaxis = linspace(1500,-136,1636)*obj.px2ps; %ps
+            start_points_bunch = [max(unmodulated_bunch_sum),length(unmodulated_bunch_sum)/2,...
+                length(unmodulated_bunch_sum)/3,unmodulated_bunch_sum(end)];
             
-        end % loadSCdata
+            gauss_eqn = 'a*exp(-((x-b)/c)^2)+d';
+            
+            % gaussian fit for center
+            bunch_width_fit = fit(bunch_center_y',unmodulated_bunch_sum,...
+                gauss_eqn,'Start',start_points_bunch);
+            
+            % check gaussian fit and bunch sum by plotting
+            plot_fit_flag = 0;
+            if plot_fit_flag == 1
+                figure;
+                plot(bunch_center_y,unmodulated_bunch_sum)
+                hold on
+                plot(bunch_center_y,bunch_width_fit.a*...
+                    exp(-((bunch_center_y-bunch_width_fit.b)./...
+                    bunch_width_fit.c).^2) + bunch_width_fit.d);
+                hold off
+            end
+            
+            obj.SCI_width_px = round(bunch_width_fit.c/sqrt(2));
+            obj.SCI_width = obj.SCI_width_px*obj.px2cm;
+            
+        end % calculate SCI center
+
         
         
         

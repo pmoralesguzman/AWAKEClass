@@ -1,7 +1,6 @@
 %________________________________________________________________________
 % Freq vs r for 1 gradient.
-% Comparison of simulation and experiment. Transverse limits are set by
-% experimental data.
+% Comparison of simulation space vs time profile
 % FFT of the proton or plasma electrons density distribution, or of a
 % lineout of the wakefields.
 %

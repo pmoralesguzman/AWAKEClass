@@ -163,8 +163,8 @@ plot_z = [plot_z];
 
 fig_cvsz = figure(1);
 colororder(cc);
-line_style = {'-.','-.','-.','-.','-','--','--','--','--'};
-line_style = {'-','-','-','-','-','-.','-.','-.','-.'};
+% line_style = {'-.','-.','-.','-.','-','--','--','--','--'};
+line_style = {'-','-','--','--','-','-.','-.',':',':'};
 
 for d = 1:length(datadirs)
     hold on
@@ -180,6 +180,27 @@ xlim([0,12])
 xlabel('z (m)')
 ylabel('total charge fraction (a.u.)');
 legend(leg,'Location','southwest','Autoupdate','off')
+
+% Create textarrow
+annotation(fig_cvsz,'textarrow',[0.621230158730159 0.576785714285714],...
+    [0.412169312169312 0.418518518518519],'String','g = 0 \%/m',...
+    'Interpreter','latex',...
+    'HeadStyle','none');
+
+% Create textarrow
+annotation(fig_cvsz,'textarrow',[0.574404761904762 0.606150793650794],...
+    [0.794179894179895 0.526455026455027],'String','positive gradient values',...
+    'Interpreter','latex',...
+    'Color',cc(8,:),...
+    'HeadStyle','ellipse');
+
+% Create textarrow
+annotation(fig_cvsz,'textarrow',[0.534722222222222 0.480753968253968],...
+    [0.16984126984127 0.351851851851852],'String','negative gradient values',...
+    'Interpreter','latex',...
+    'Color',cc(2,:),...
+    'HeadStyle','ellipse');
+
 drawnow;
 
 P.fig_handle = fig_cvsz;

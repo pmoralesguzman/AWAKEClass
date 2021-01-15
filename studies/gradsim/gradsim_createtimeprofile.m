@@ -27,13 +27,13 @@ close all;
 
 % parameters
 
-datadir = 'gp10';
+datadir = 'gm10';
 measurement_point = 1350; % in cm, from plasma beginning
 dump = 100;
 binsize = 0.41214;
-trans_lims = linspace(0,0.16,40); %cm (for 74 see above)
+trans_lims = linspace(0,0.3,138); %cm (74 for 0.16 cm (see above))
 xi_range = [18.5335,0];
-dataformat = 'mat';
+dataformat = 'h5';
 
 % get macroparticle info
 
@@ -57,7 +57,9 @@ O.raw_dataset = 'q'; O.getdata(); O.assign_raw();
 
 
 % to get simulation window size, needed for the distance
+O.dataformat = 'mat'; % done for gm20
 O.property = 'density'; O.getdata(); O.trim_data(); O.denorm_distance(); 
+O.dataformat = 'h5';
 
 % manual trim of raw data
 
@@ -123,7 +125,7 @@ densitymatrix = fliplr((chargematrix./ringvolume')*5e6);
 tbin = linspace(trim_window_size,0,ceil(trim_window_size/binsize));
 xlims = [tbin(1),tbin(end)];
 ylims = [-trans_lims(end),trans_lims(end)];
-P.field_density_plot(densitymatrix,ylims,xlims);
+P.plot_field_density('density_plot',densitymatrix,'r_plot',ylims,'z_plot',xlims);
 
 save(['loading_files/',datadir,'densitytimeprofile.mat'],'densitymatrix','xlims','ylims')
 
