@@ -17,7 +17,7 @@
 clear;
 
 % file location variables
-datadirs_sim = {'g0'};
+datadirs_sim = {'gm10','g0','gp10'};
 
 dataformat = 'mat';
 useAvg = false;
@@ -73,9 +73,9 @@ P = Plotty('datadir',datadirs_sim{1},'dataformat',dataformat,...
     'wakefields_direction',wakefields_direction,'species',species,...
     'property_plot',property_plot,'denormalize_flag',denormalize_flag,...
     'make_pause',make_pause,'fig_number',fig_number,...
-    'include_long_profile',true,'title_flag',false);
+    'title_flag',false);
 
-d = 1;
+d = 3;
 
 fig_handle = figure(fig_number);
 
@@ -111,7 +111,9 @@ if d == 1
     max_indopaque_exp = max(ind_opaque,[],'all');
 end
 ind_opaque = ind_opaque/max_indopaque_exp;
-if P.include_long_profile
+
+xxx = true;
+if xxx
     ax_density_sim(d) = nexttile;
 else
     ax_density_sim(d) = axes('parent',fig_handle,'NextPlot','add','color','none');

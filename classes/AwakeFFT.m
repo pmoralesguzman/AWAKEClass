@@ -24,6 +24,7 @@ classdef AwakeFFT < handle & OsirisDenormalizer
     properties
         
         % input (description in parser)
+        load_data_flag;
         on_axis; 
         scan_type;
         trans_lims;
@@ -32,6 +33,8 @@ classdef AwakeFFT < handle & OsirisDenormalizer
         % parameter to find the next power of 2, for n times the length of the time
         % domain data, for the zero padding. It makes finding the peak
         % of the power spectrum more accurate.
+        
+        dataload
         
         center_around_0_flag;
         center_around_0_points;
@@ -76,12 +79,13 @@ classdef AwakeFFT < handle & OsirisDenormalizer
             p = inputParser;
             
             % selection options
+            p.addParameter('load_data_flag', 1, @(x) ismember(x,[0,1]));
             % Options to make the on-axis profile: 
             % - sum: just sum counts (usually done like this in the experiment)
             % - int: integrate counts radially (this is more realistic as considers the ings of charge)
             % - intw: integrate but weighting each pixel by 1/r (does not work very well at the moment 15/01/2021, better use sum)
             % - lineout: a lineout at the position r (usually used for fields)
-            p.addParameter('on_axis','int', @(x) ismember(x,{'int','intw','sum','lineout'}));
+            p.addParameter('on_axis','int', @(x) ismember(x,{'int','int_exp','sum','lineout'}));
             % cumulative: take all charge from axis (or around the axis) up the each one of the limits in trans_lims
             % slice: take charge from trans_lims(r) to trans_lims(r+1)
             p.addParameter('scan_type','cumulative', @(x) ismember(x,{'cumulative','slice','slice_abs'}));
@@ -109,6 +113,7 @@ classdef AwakeFFT < handle & OsirisDenormalizer
             end
             obj = obj@OsirisDenormalizer(unmatched{:}); %Parse to superclass OsirisDenormalizer.m
             
+            obj.load_data_flag       = p.Results.load_data_flag;
             obj.on_axis              = p.Results.on_axis;
             obj.scan_type            = p.Results.scan_type;
             obj.trans_lims           = p.Results.trans_lims;
@@ -122,9 +127,9 @@ classdef AwakeFFT < handle & OsirisDenormalizer
             
         end % constructor
         
-        function obj = fft_dataload(obj,load_switch)
+        function fft_dataload(obj)
             
-            if load_switch
+            if obj.load_data_flag == 1
                 %load the data according to input
                 obj.getdata();
                 
@@ -167,6 +172,9 @@ classdef AwakeFFT < handle & OsirisDenormalizer
                             case 'int'
                                 obj.fft_densitymatrix(r,:) = 2*pi*obj.dr*sum((obj.r(ir)').*obj.(obj.species)(ir,:),1);
                                 %                                 obj.fft_densitymatrix(r,:) = dr*sum((4*atan(0.004./obj.r(ir)').*obj.r(ir)').*obj.(obj.species)(ir,:),1);
+                            case 'int_exp'
+                                obj.fft_densitymatrix(r,:) = pi*obj.dr*sum((abs(obj.r(ir))').*obj.(obj.species)(ir,:),1); % average of sides
+                                
                             case 'intw' % transform to sum ?
                                 obj.fft_densitymatrix(r,:) = 2*pi*trapz(obj.r(ir),(obj.r(ir)').*obj.(obj.species)(ir,:))./obj.r(ir);
                             case 'sum'
@@ -199,10 +207,11 @@ classdef AwakeFFT < handle & OsirisDenormalizer
             end % for trans lims
             
             if obj.center_around_0_flag == 1
-                fft_densitymatrix_smooth = smoothdata(obj.fft_densitymatrix,2,'gaussian',obj.center_around_0_points);
+                densitymatrix_smooth = smoothdata(obj.fft_densitymatrix,2,'gaussian',obj.center_around_0_points);
                 densitymatrix_temp = obj.fft_densitymatrix;
-                obj.fft_densitymatrix = densitymatrix_temp - fft_densitymatrix_smooth;
-                % smooth_debug = obj.fft_densitymatrix - fft_densitymatrix_smooth;
+                obj.fft_densitymatrix = densitymatrix_temp - densitymatrix_smooth;
+                smooth_debug = obj.fft_densitymatrix - densitymatrix_smooth;
+                a = 1;
             end % center_around_0
             
         end % fft_dataload

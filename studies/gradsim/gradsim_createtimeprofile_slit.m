@@ -14,7 +14,7 @@
 %________________________________________________________________________
 
 clear;
-close all;
+% close all;
 
 % maximum delay in the experiment: 618.2097 ps --> 18.5335 cm
 % longitudinal pixels after the seeding: 1500
@@ -29,7 +29,7 @@ close all;
 
 datadir = 'gm20';
 measurement_point = 1350; % in cm, from plasma beginning
-dump = 95;
+dump = 100;
 binsize = 0.41214;
 trans_lims = linspace(0,0.3,138); %cm (74 for 0.16 cm (see above))
 xi_range = [18.5335,0];
@@ -78,21 +78,42 @@ prop_distances = measurement_point + O.simulation_window - z;
 
 new_r = O.denorm_distance(O.charge_pusher(O,prop_distances));
 
-delay_time = (O.dtime + O.simulation_window - z)/O.c_cm*1e12; % ps
+dy = (250/2)*1e-4; % 74 um width
+
+n_points = 30;
+
+eq_spaced_v = linspace(0,1,n_points);
+th_end_points = asin(dy./new_r);
+i_complex = (imag(th_end_points) ~= 0);
+th_end_points(i_complex) = pi/2;
+q_temp = O.q_raw.*th_end_points;
+
+th_mat = eq_spaced_v.*(th_end_points);
+new_x = new_r.*cos(th_mat); 
+new_r = new_x(:);
+
+new_q = q_temp.*(ones(1,n_points)./n_points);
+new_q = new_q(:);
+
+new_z = z.*(ones(1,n_points));
+new_z = new_z(:);
+
+
+delay_time = (O.dtime + O.simulation_window - new_z)/O.c_cm*1e12; % ps
 t_simulation_window = (O.simulation_window)/O.c_cm*1e12; % ps
 
-trim_window_size = (max(O.z)-min(O.z))/O.c_cm*1e12;
 
+
+trim_window_size = (max(O.z)-min(O.z))/O.c_cm*1e12;
 chargematrix = zeros(length(trans_lims)-1,ceil(trim_window_size/binsize));
 
 for rr = 1:(length(trans_lims)-1)
     ir = (new_r >= trans_lims(rr)) & (new_r < trans_lims(rr+1));
     if sum(ir) == 0; continue; end
         
-    
-    
+
     % select only those particles inside the transverse limits
-    q_r = O.q_raw(ir);
+    q_r = new_q(ir);
     delay_time_r = delay_time(ir);
     [N,edges,ind_bin] = histcounts(delay_time_r,0:binsize:trim_window_size);
     A = accumarray(ind_bin+1,delay_time_r);
@@ -117,17 +138,18 @@ for rr = 1:(length(trans_lims)-1)
     O.progress_dump('building density',rr,length(trans_lims)-1)
     
 end
-r_in = trans_lims(1:end-1);
-r_ex = trans_lims(2:end);
-ringvolume = binsize*pi*(r_ex.^2-r_in.^2);
-densitymatrix = fliplr((chargematrix./ringvolume')*5e6);
+
+
+
+densitymatrix = fliplr(chargematrix);
 
 tbin = linspace(trim_window_size,0,ceil(trim_window_size/binsize));
 xlims = [tbin(1),tbin(end)];
 ylims = [-trans_lims(end),trans_lims(end)];
 P.plot_field_density('density_plot',densitymatrix,'r_plot',ylims,'z_plot',xlims);
-P.plot_name = '12dd3'; P.save_format = 'png'; P.fig_handle = gcf; 
+P.plot_name = '123'; P.save_format = 'png'; P.fig_handle = gcf; 
 P.save_plot();
-save(['loading_files/',datadir,'densitytimeprofile.mat'],'densitymatrix','xlims','ylims')
+
+save(['loading_files/',datadir,'densitytimeprofile_slit.mat'],'densitymatrix','xlims','ylims')
 
 charge = O.cylindrical_integration(trans_lims(1:end-1),fliplr(tbin),densitymatrix);

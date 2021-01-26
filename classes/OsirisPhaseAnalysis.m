@@ -190,6 +190,7 @@ classdef OsirisPhaseAnalysis < handle & OsirisDenormalizer
 %                 plot(poly_xi10,poly_data)
 %                 hold off
 %                 end
+
                 % Ideally there should be one zero crossing, specially
                 % since an interpolation of the fields is used to find it,
                 % but in the case there are many (range to large, or data too noisy),
@@ -221,7 +222,12 @@ classdef OsirisPhaseAnalysis < handle & OsirisDenormalizer
             % at the beginning of the plasma.
             ind_nonnan = ~isnan(obj.dephasing_line);
             dephasing_line_nonnan = obj.dephasing_line(ind_nonnan);
-            obj.dephasing_first = dephasing_line_nonnan(1);
+            if isempty(obj.dephasing_first)
+                obj.dephasing_first = dephasing_line_nonnan(1);
+            else
+                obj.dephasing_first = obj.dephasing_line(obj.dephasing_first);
+            end
+            
             obj.dephasing_line = (obj.dephasing_line-obj.dephasing_first)/obj.plasma_wavelength;
             
             
@@ -371,9 +377,7 @@ classdef OsirisPhaseAnalysis < handle & OsirisDenormalizer
                 simulationwindow = obj.simulation_window;
                 save(obj.waterfall_filename,...
                     'waterfallmat','waterfallxi','waterfallz','simulationwindow');
-                
-                
-                
+
             end
             
         end % waterfall

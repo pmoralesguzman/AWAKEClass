@@ -19,15 +19,15 @@ clear;
 datadirs = {'gm20','g0','gp10'};
 datadirs_sim = {'gm20','g0','gp10'};
 
-datadirs = {'gm20'};
-datadirs_sim = {'gm20'};
+% datadirs = {'gm20'};
+% datadirs_sim = {'gm20'};
 
 dataformat = 'mat';
 useAvg = false;
 dump = 100;
 
 % saving data
-save_flag = false;
+save_flag = true;
 save_format = {'pdf','png'};
 
 % plasma properties
@@ -102,8 +102,8 @@ for d = 1:length(datadirs)
     
     EDA.datadir = datadirs{d};
     EDA.loadSCdata(); % P.SC
-    z_plot = EDA.SCI_xaxis; %ps
-    r_plot = EDA.SCI_yaxis*10; %mm
+    z_plot = EDA.SCI_z; %ps
+    r_plot = EDA.SCI_r*10; %mm
     
     %first manual trimming
     ind_r = ( r_plot > -trans_range(2)*10) & (r_plot < trans_range(2)*10);
@@ -260,11 +260,11 @@ for d = 1:length(datadirs)
     long_profile = sum(density_trim);
     plongprofile = plot(z_plot,long_profile);
     axlongprofile_sim(d).XDir = 'reverse';
-    xlim(xi_range); ylim([0 5e10])
+    xlim(xi_range); ylim([0 12e10])
     
     if d ~= 3
-%         axlongprofile_sim(d).XTick = [];
-%         axlongprofile_sim(d).XTickLabel = [];
+        axlongprofile_sim(d).XTick = [];
+        axlongprofile_sim(d).XTickLabel = [];
     end
     
 %     if d ~= 1

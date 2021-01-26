@@ -756,6 +756,24 @@ classdef OsirisLoader < handle
             end % switch integral type
         end % cylindrical_integration
         
+        function intout = streak_camera_convolution(r,data,varargin)
+            
+            
+
+            
+            switch integral_type
+                case 'sum'
+                    dr = r(2) - r(1);
+                    intout = 2*pi*dr*sum((r').*data);
+                case 'trapz'
+                    intout = 2*pi*trapz(r',(r').*data);
+                case 'simpsons'
+                    intout = 2*pi*simpsons(r',(r').*data);
+                case 'just_sum'
+                    intout = sum(data);
+            end % switch integral type
+        end % cylindrical_integration
+        
         function new_r = charge_pusher(OD,prop_distance)
             
             norm_time = OD.norm_distance(prop_distance);
