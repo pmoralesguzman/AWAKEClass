@@ -24,8 +24,12 @@ end
 % clear;
 close all;
 
+run_it = 0;
+
 % load files
 load('color_purple_to_green.mat');
+load('color_red_to_blue.mat');
+
 % temp = load('sim_charge10.mat');
 % sim_charge = temp.sim_charge;
 
@@ -77,6 +81,7 @@ bunch_back_fraction = 0*normcdf(seeding_position - 3*sigma_z,0,sigma_z);
 initial_charge = 3e11;
 
 
+
 % initialize charges
 chargevsz = zeros(length(datadirs),length(dump_list));
 plot_z = zeros(length(datadirs),length(dump_list));
@@ -98,73 +103,83 @@ O = OsirisDenormalizer(...
 P = Plotty('plots_dir',plots_dir,'plasmaden',plasma_density,...
     'plot_name',plot_name,'save_flag',save_plot_flag);
 
-% begin loop
-for d = 1:length(datadirs)
+if run_it ==1
     
-    % select study directory
+    % begin loop
+    for d = 1:length(datadirs)
+        
+        % select study directory
+        
+        O.datadir = datadirs{d};
+        
+        for n = 1:length(dump_list)
+            O.dump = dump_list(n); O.getdata();
+            
+            switch O.property
+                case 'raw'
+                    
+                    O.raw_dataset = 'x'; O.getdata(); O.assign_raw();
+                    O.r_raw = O.denorm_distance(O.nr_raw);
+                    O.raw_dataset = 'q'; O.getdata(); O.assign_raw();
+                    O.denorm_distance();
+                    
+                    ind_translim = O.r_raw < trans_limit;
+                    if n == 1
+                        if dump_list(n) < 2
+                            initial_charge = sum(O.q_raw)/(bunch_long_fraction - bunch_back_fraction);
+                        else
+                            error('for raw the first dump must be 0 or 1 to calculate initial charge')
+                        end % if dump list 2
+                    end % if n 1
+                    
+                    chargevsz(d,n) = sum(O.q_raw(ind_translim));
+                    O.propagation_distance = O.dtime - 21/2;
+                    
+                case 'density'
+                    O.trim_data(); O.denorm_density();
+                    chargevsz(d,n) = O.cylindrical_integration(O.r,O.z,O.(O.species),'trapz');
+                    
+            end %switch property
+            plot_z(d,n) = O.propagation_distance/100;
+            
+            % the charge within 1 sigma of the unmodulated proton bunch is taken as 1.0
+            % in the experiment
+            sigma_beam(d,n) = 0.02*sqrt(1+plot_z(d,n)^2/4.9^2);
+            sigma_normalization = sigma_exp/sigma_beam(d,n);
+            exp_normalization(d,n) = 1 - exp(-(sigma_normalization)^2/2);
+            
+            bunch_trans_fraction(d,n) = 1-exp(-(trans_limit./sigma_beam(d,n))^2/2);
+            bunch_fraction_outside_simulation_window(d,n) = ...
+                bunch_trans_fraction(d,n)*(1 - bunch_long_fraction + bunch_back_fraction);
+            
+            O.progress_dump(['charge evo. ',O.datadir],n,length(dump_list));
+        end % for dump list
+        
+    end % for datadirs
     
-    O.datadir = datadirs{d};
     
-    for n = 1:length(dump_list)
-        O.dump = dump_list(n); O.getdata();
-        
-        switch O.property
-            case 'raw'
-                
-                O.raw_dataset = 'x'; O.getdata(); O.assign_raw();
-                O.r_raw = O.denorm_distance(O.nr_raw);
-                O.raw_dataset = 'q'; O.getdata(); O.assign_raw();
-                O.denorm_distance();
-                
-                ind_translim = O.r_raw < trans_limit;
-                if n == 1
-                    if dump_list(n) < 2
-                        initial_charge = sum(O.q_raw)/(bunch_long_fraction - bunch_back_fraction);
-                    else
-                        error('for raw the first dump must be 0 or 1 to calculate initial charge')
-                    end % if dump list 2
-                end % if n 1
-                
-                chargevsz(d,n) = sum(O.q_raw(ind_translim));
-                O.propagation_distance = O.dtime - 21/2;
-                
-            case 'density'
-                O.trim_data(); O.denorm_density();
-                chargevsz(d,n) = O.cylindrical_integration(O.r,O.z,O.(O.species),'trapz');
-                
-        end %switch property
-        plot_z(d,n) = O.propagation_distance/100;
-        
-        % the charge within 1 sigma of the unmodulated proton bunch is taken as 1.0
-        % in the experiment
-        sigma_beam(d,n) = 0.02*sqrt(1+plot_z(d,n)^2/4.9^2);
-        sigma_normalization = sigma_exp/sigma_beam(d,n);
-        exp_normalization(d,n) = 1 - exp(-(sigma_normalization)^2/2);
-        
-        bunch_trans_fraction(d,n) = 1-exp(-(trans_limit./sigma_beam(d,n))^2/2);
-        bunch_fraction_outside_simulation_window(d,n) = ...
-            bunch_trans_fraction(d,n)*(1 - bunch_long_fraction + bunch_back_fraction);
-        
-        O.progress_dump(['charge evo. ',O.datadir],n,length(dump_list));
-    end % for dump list
     
-end % for datadirs
-
-
-
-
-charge_fraction0 = (chargevsz/initial_charge + ...
-    bunch_fraction_outside_simulation_window)./exp_normalization;
-% charge_fraction = [charge_fraction0,sim_charge'];
-charge_fraction = charge_fraction0;
-plot_z = [plot_z];
+    
+    charge_fraction0 = (chargevsz/initial_charge + ...
+        bunch_fraction_outside_simulation_window)./exp_normalization;
+    % charge_fraction = [charge_fraction0,sim_charge'];
+    charge_fraction = charge_fraction0;
+    plot_z = [plot_z];
+    
+else
+    
+    load('loading_files/gradsim_charge_evolution.mat');
+    
+end %if run it
 
 %% plotting
 
 fig_cvsz = figure(1);
-colororder(cc);
+colororder(ccrb);
 % line_style = {'-.','-.','-.','-.','-','--','--','--','--'};
-line_style = {'-','-','--','--','-','-.','-.',':',':'};
+line_style = {':','--','-.','-','-','-','-.','--',':'};
+fontsize_annotation = 12;
+fontsize_label = 14;
 
 for d = 1:length(datadirs)
     hold on
@@ -176,33 +191,35 @@ xline(4,'--','LineWidth',1,'color',[0 0.4470 0.7410]);
 xline(10,'--','LineWidth',1,'color',[0 0.0 0.0]);
 hold off
 xlim([0,12])
-
-xlabel('z (m)')
-ylabel('total charge fraction (a.u.)');
-legend(leg,'Location','southwest','Autoupdate','off')
+ax = gca;
+ax.FontSize = fontsize_label;
+xlabel('z (m)','FontSize',fontsize_label)
+ylabel('charge fraction','FontSize',fontsize_label);
+legend(leg,'Location','southwest','Autoupdate','off','FontSize',fontsize_annotation)
 
 % Create textarrow
 annotation(fig_cvsz,'textarrow',[0.621230158730159 0.576785714285714],...
     [0.412169312169312 0.418518518518519],'String','g = 0 \%/m',...
     'Interpreter','latex',...
-    'HeadStyle','none');
+    'HeadStyle','none','FontSize',fontsize_annotation);
 
 % Create textarrow
 annotation(fig_cvsz,'textarrow',[0.574404761904762 0.606150793650794],...
     [0.794179894179895 0.526455026455027],'String','positive gradient values',...
     'Interpreter','latex',...
-    'Color',cc(8,:),...
-    'HeadStyle','ellipse');
+    'Color',ccrb(8,:),...
+    'HeadStyle','none','FontSize',fontsize_annotation);
 
 % Create textarrow
-annotation(fig_cvsz,'textarrow',[0.534722222222222 0.480753968253968],...
-    [0.16984126984127 0.351851851851852],'String','negative gradient values',...
+annotation(fig_cvsz,'textarrow',[0.537722222222222 0.481053968253968],...
+    [0.17384126984127 0.354851851851852],'String','negative gradient values',...
     'Interpreter','latex',...
-    'Color',cc(2,:),...
-    'HeadStyle','ellipse');
+    'Color',ccrb(2,:),...
+    'HeadStyle','none','FontSize',fontsize_annotation);
 
 drawnow;
 
 P.fig_handle = fig_cvsz;
 P.save_plot();
 
+save('loading_files/gradsim_charge_evolution.mat','plot_z','charge_fraction');

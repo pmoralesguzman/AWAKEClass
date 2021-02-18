@@ -54,7 +54,7 @@ exp_upperlimit      = sigma_exp;
 
 % analysis
 distance    = 200; % cm
-limitr      = 1; %linspace(1,100,99)/100*3;
+limitr      = 1; %linspace(1,100,99)/100*2.9;
 
 % switches
 do_cvsr             = false; % flag to do individual c vs r plots
@@ -90,7 +90,6 @@ initial_charge      = 3e11;
 % in the experiment
 sigma_normalization = 1.0;
 exp_normalization = 1 - exp(-(sigma_normalization)^2/2);
-exp_normalization = 1*exp_normalization;
 
 % initialize charges
 charge_translim = zeros(length(trans_limit),length(grads_sim));
@@ -105,16 +104,17 @@ for d = 1:length(datadirs)
     
     % select study directory
     O.datadir = datadirs{d};
-    O.getdata(); O.trim_data(); O.denorm_density();
-    
+    O.getdata(); O.assign_density(); O.denorm_density(); O.denorm_distance();
     for r = 1:length(trans_limit)
-        charge_translim(r,d) = O.cylindrical_integration(O.r,O.z,O.proton_beam,'sum')/initial_charge;
-        charge_fraction(r,d) = charge_translim(r,d) ...
+        ind_r = O.r < trans_limit(r);        
+        charge_translim(r,d) = O.cylindrical_integration(O.r(ind_r),O.z,O.proton_beam(ind_r,:),'sum');
+        charge_fraction(r,d) = charge_translim(r,d)/initial_charge ...
             + bunch_fraction_outside_simulation_window(r);
+        O.progress_dump('charge fraction r',r + (d-1)*length(trans_limit),length(trans_limit)*length(datadirs));
     end
-    sim_charge = charge_fraction/exp_normalization;
     
 end
+sim_charge = charge_fraction/exp_normalization;
 
 %% plot bunch population of selected bunch for the gradients
 colors = {'r','k',[0 0.5 0],'b',[0.5,0,0.5]};
@@ -130,17 +130,21 @@ if length(trans_limit) == 1 % if only one radius is chosen, plot both on the sam
     hold on
     plot_sim = plot(grads_sim/10,sim_charge,'o','MarkerSize',marker_size,'Color',red); % SIM
     set(plot_sim, 'MarkerFaceColor', get(plot_sim,'Color'))
-    p1 = plot(grads_exp/10,0.5595/93394892.27646959*[80703992.52017055 , 68925947.82344057 , 75240015.91677196 , 93394892.27646959 , 138102471.82438824 , 163936581.1924591 , 182302159.40055966 , 221130760.18843037],...
-        'hm');
-    p2 = plot(grads_exp/10,0.5595/10268414.871418467*[9179849.047179596, 8423956.737214955, 8853881.912626276, 10268414.871418467, 13686601.622400615, 15783961.96087067, 17334177.540318232, 20445446.223657124],...
-        'pk');
+%     p1 = plot(grads_exp/10,0.5595/93394892.27646959*[80703992.52017055 , 68925947.82344057 , 75240015.91677196 , 93394892.27646959 , 138102471.82438824 , 163936581.1924591 , 182302159.40055966 , 221130760.18843037],...
+%         'hm');
+%     p2 = plot(grads_exp/10,0.5595/10268414.871418467*[9179849.047179596, 8423956.737214955, 8853881.912626276, 10268414.871418467, 13686601.622400615, 15783961.96087067, 17334177.540318232, 20445446.223657124],...
+%         'pk');
     
     hold off
-    legend([plot_sim(1) plot_exp(1) p1 p2],'Simulation','Experiment','SC charge','SC counts','location','northwest');
+%     legend([plot_sim(1) plot_exp(1) p1 p2],'Simulation','Experiment','SC charge','SC counts','location','northwest');
+    legend([plot_sim(1) plot_exp(1)],'Simulation','Experiment','location','northwest');
+
     % 'Experiment \pm std. dev.'
+    ax = gca;
+    ax.FontSize = 14;
     grid on
     xlabel('density gradient (%/m)')
-    ylabel('charge fraction (a.u.)')
+    ylabel('charge fraction')
     xlim([-2.2,2.2])
     %     ylim([0 0.85])
     
@@ -169,7 +173,7 @@ else % otherwise, each set of curves in its own graph
     % plot of experimental data
     fig_fracallexp = figure(1);
     grads_exp_matrix = repmat(grads_exp/10,exp_steps,1);
-    plot_exp = plot(grads_exp_matrix',1/1*charge_exp(1:exp_steps,:)','o-');
+    plot_exp = plot(grads_exp_matrix',charge_exp(1:exp_steps,:)','o-');
     xlabel('density gradient %/m')
     ylabel('charge fraction')
     title('charge fraction (experiment)')

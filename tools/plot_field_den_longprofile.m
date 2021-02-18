@@ -15,21 +15,20 @@
 close all;
 
 % file location variables
-datadir = 'gm20';
-dataformat = 'mat';
-useAvg = false;
-dump_list = 45:1:78;
+datadir = 'SM';
+dataformat = 'h5';
+useAvg = true;
+dump_list = 180:1:200;
 
 % saving data
 save_flag = true;
-% plots_dir = ['field_density/grads/',datadir];
 save_format = {'png'};
 
 % plasma properties
 plasmaden = 1.81e14;
 
 % choose fields to plot
-wakefields_direction = 'trans'; % trans, long
+wakefields_direction = 'long'; % trans, long
 
 % choose species density to plot
 species = 'proton_beam'; 
@@ -37,7 +36,7 @@ species = 'proton_beam';
 % choose limits (in cm, must denormalize)
 trans_range = [0 0.16];
 % xi_range = [4.8 4.4];
-xi_range = [6 1];
+xi_range = [6 0];
 
 % choose property to plot
 property_plot = 'both'; % density, wakefields, both
@@ -59,10 +58,14 @@ fig_number = 1;
 
 
 % directory to save the plots
-plots_dir = ['gradsim_paper/field_density_longprofile/grads/',datadir,'/',...
-    property_plot,'/',wakefields_direction,'/',...
-    'xi',num2str(round(xi_range(1))),'xi',...
-    num2str(round(xi_range(2)))];
+% plots_dir = ['gradsim_paper/field_density_longprofile/grads/',datadir,'/',...
+%     property_plot,'/',wakefields_direction,'/',...
+%     'xi',num2str(round(xi_range(1))),'xi',...
+%     num2str(round(xi_range(2)))];
+% plots_dir = ['positronplasma/field_density_longprofile/',datadir,'/',...
+%     property_plot,'/',wakefields_direction,'/'];
+plots_dir = ['positronplasma/field_density_longprofile/',datadir,'/',...
+    property_plot,'/','proton','/'];
 
 P = Plotty('datadir',datadir,'dataformat',dataformat,...
     'useAvg',useAvg,'dump_list',dump_list,...
@@ -72,16 +75,12 @@ P = Plotty('datadir',datadir,'dataformat',dataformat,...
     'plasmaden',plasmaden,'trans_range',trans_range,'xi_range',xi_range,...
     'wakefields_direction',wakefields_direction,'species',species,...
     'property_plot',property_plot,'denormalize_flag',denormalize_flag,...
-    'make_pause',make_pause,'fig_number',fig_number,...
-    'include_long_profile',true);
+    'make_pause',make_pause,'fig_number',fig_number);
 
 figure(fig_number);
-P.field_density_plot();
-
-% yline(0.868,'r','LineWidth',2)
-% yline(-0.868,'r','LineWidth',2)
-% ylim([-1.6,1.6])
-
+P.plot_field_density('include_lineout','both',... %density_profile, 2D
+    'ymax_density_profile',2e14,'trans_lines_position',[-0.01 ,0.01],...
+    'trans_lines_2D_flag',true);
 
 P.save_plot();
 

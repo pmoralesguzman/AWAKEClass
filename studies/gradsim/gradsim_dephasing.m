@@ -40,17 +40,22 @@ OPA = OsirisPhaseAnalysis('datadir',datadirs{1},...
     'plasmaden',plasmaden,...
     'dump_list',dump_list,'useAvg',useAvg,...
     'dataformat',dataformat,'dephasing_xi',dephasing_xi(1),...
-    'force_waterfall',false); OPA.dephasing();
+    'force_waterfall',false); 
 
-dephasing_z = zeros(length(datadirs),length(OPA.dephasing_line));
+OPA.dephasing();
+
+dephasing_z = zeros(length(dephasing_xi),length(datadirs),length(OPA.dephasing_line));
 dephasing_lines = dephasing_z;
 %%
 fig_dephase = figure(1);
 fig_dephase.OuterPosition = [100 100 1200 400];
-colororder(cc);
+colororder(ccrb);
 tt = tiledlayout(1,3);
 tt.TileSpacing = 'compact';
 tt.Padding = 'compact';
+
+fontsize_annotation = 12;
+fontsize_label = 14;
 
 for xi = 1:length(dephasing_xi)
     
@@ -67,22 +72,23 @@ for xi = 1:length(dephasing_xi)
         OPA.dephasing();
         
         
-        dephasing_z(d,:) = linspace(OPA.waterfall_z(1),OPA.waterfall_z(2),...
+        dephasing_z(xi,d,:) = linspace(OPA.waterfall_z(1),OPA.waterfall_z(2),...
             length(OPA.dephasing_line));
-        dephasing_lines(d,:) = OPA.dephasing_line;
+        dephasing_lines(xi,d,:) = OPA.dephasing_line*2; % HALF PLASMA WAVELENGTH !!!
         OPA.progress_dump('dephasing lines',d,length(datadirs))
         
     end
     
     ax(xi) = nexttile;
-    line_style = {'-','-','--','--','-','-.','-.',':',':'};
+    ax(xi).FontSize = fontsize_label;
+    line_style = {':','--','-.','-','-','-','-.','--',':'};
     hold on
     for d = 1:length(datadirs)
-        p1 = plot(dephasing_z(d,:),dephasing_lines(d,:),line_style{d},'LineWidth',2);
+        p1 = plot(squeeze(dephasing_z(xi,d,:)),squeeze(dephasing_lines(xi,d,:)),line_style{d},'LineWidth',2);
     end
-    %     yline(-1,'--','LineWidth',1,'color',[0 0.4470 0.7410])
-%     yline(-0.5,'--','LineWidth',1,'color',[0 0.4470 0.7410])
-    %     yline(0.0,'--','LineWidth',1,'color',[0 0.4470 0.7410])
+    yline(-1,'--','LineWidth',1,'color',[0 0.4470 0.7410])
+    yline(-2,'--','LineWidth',1,'color',[0 0.4470 0.7410])
+%     yline(0.0,'--','LineWidth',1,'color',[0 0.4470 0.7410])
     xline(4,'--','LineWidth',1,'color',[0 0.4470 0.7410]);
     hold off
     
@@ -99,16 +105,16 @@ for xi = 1:length(dephasing_xi)
     xlim([0 10])
     
     if OPA.dephasing_first == 40
-        ylim([-6.5 1.5])
+        ylim([-6.5 1.5]*2)
     else
-        ylim([-6.5 0.5])
+        ylim([-6.5 0.5]*2)
     end % if OPA dephasing first
     
 end % xi
 
-legend(ax(3),leg,'location','southeast','FontSize',10)
-ylabel(tt,'zero-crossing position shift (\lambda_p)')
-xlabel(tt,'z (m)')
+legend(ax(3),leg,'location','southeast','FontSize',fontsize_annotation,'NumColumns',2)
+ylabel(tt,'zero-crossing position shift (\lambda_p/2)','FontSize',fontsize_label)
+xlabel(tt,'z (m)','FontSize',fontsize_label)
 
 if OPA.dephasing_first == 40
     
@@ -117,13 +123,13 @@ if OPA.dephasing_first == 40
         [0.581818181818182 0.816783216783217],'Color',[0 0.42578125 0.171875],...
         'String',{'positive','gradient values'},...
         'Interpreter','latex',...
-        'HeadStyle','ellipse');
+        'HeadStyle','none','FontSize',fontsize_annotation);
     
     % Create textarrow
     annotation(fig_dephase,'textarrow',[0.166167664670659 0.292664670658683],...
         [0.404195804195804 0.685314685314685],'String','g = 0 \%/m',...
         'Interpreter','latex',...
-        'HeadStyle','none');
+        'HeadStyle','none','FontSize',fontsize_annotation);
     
     % Create textarrow
     annotation(fig_dephase,'textarrow',[0.264221556886228 0.328967065868264],...
@@ -131,32 +137,35 @@ if OPA.dephasing_first == 40
         'Color',[0.328125 0.15234375 0.55859375],...
         'String',{'negative','gradient values'},...
         'Interpreter','latex',...
-        'HeadStyle','ellipse');
+        'HeadStyle','none','FontSize',fontsize_annotation);
 else
     
     % Create textarrow
-    annotation(fig_dephase,'textarrow',[0.150074850299401 0.212949101796407],...
-        [0.60979020979021 0.827972027972028],'Color',[0 0.42578125 0.171875],...
+    annotation(fig_dephase,'textarrow',[0.159431137724551 0.221556886227545],...
+    [0.6 0.787412587412587],'Color',[33,113,181]/256,...
         'String',{'positive','gradient values'},...
         'Interpreter','latex',...
-        'HeadStyle','ellipse');
+        'HeadStyle','none','FontSize',fontsize_annotation);
     
     % Create textarrow
     annotation(fig_dephase,'textarrow',[0.264221556886228 0.306137724550898],...
         [0.300699300699301 0.488111888111888],...
-        'Color',[0.328125 0.15234375 0.55859375],...
-        'String',['negative',newline,'gradient values'],...
+        'Color',[203,24,29]/256,...
+        'String',{'negative','gradient values'},...
         'Interpreter','latex',...
-        'HeadStyle','ellipse');
+        'HeadStyle','none','FontSize',fontsize_annotation);
     
     % Create textarrow
-    annotation(fig_dephase,'textarrow',[0.166167664670659 0.257110778443114],...
-        [0.404195804195804 0.709090909090909],'String','g = 0 \%/m',...
+    annotation(fig_dephase,'textarrow',[0.166167664670659 0.25374251497006],...
+    [0.404195804195804 0.692307692307692],'String','g = 0 \%/m',...
         'Interpreter','latex',...
-        'HeadStyle','none');
+        'HeadStyle','none','FontSize',fontsize_annotation);
 end
 
 
 P.fig_handle = fig_dephase;
 P.save_plot();
+
+save('loading_files/gradsim_dephasing.mat','dephasing_z','dephasing_lines');
+
 

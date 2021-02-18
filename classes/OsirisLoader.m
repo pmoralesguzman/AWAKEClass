@@ -95,6 +95,7 @@ classdef OsirisLoader < handle
         nproton_beam; % proton bunch density
         nplasma_electrons; % plasma electrons density
         nelectron_bunch; % accelerated electron bunch density
+        nplasma_positrons; % plasma positron density
         % more species to come ...
         
         % raw_data
@@ -131,9 +132,9 @@ classdef OsirisLoader < handle
             p.addParameter('downsample_z', 1, @(x) isfloat(x))
             % Flag to return only the full path where the file is located and not open
             % any of its contents
-            p.addParameter('justPath', false, @(x) islogical(x));
+            p.addParameter('justPath', false, @(x) islogical(x) || x == 0 || x == 1);
             % Flag to use the avg of the files given by Osiris (if it is available)
-            p.addParameter('useAvg', false, @(x) islogical(x));
+            p.addParameter('useAvg', false, @(x) islogical(x) || x == 0 || x == 1);
             % Work in progress, ignore this one
             p.addParameter('openrange', [1 1 inf inf], @(x) isfloat(x));
             
@@ -143,7 +144,7 @@ classdef OsirisLoader < handle
             % For density or raw, specify the species name
             p.addParameter('species', 'proton_beam', @(x) ismember(x,{'proton_beam',...
                 'electrons','electron_bunch','electron_seed','electron_beam',...
-                'antiproton_seed','proton_beamfront','plasma_electrons'}));
+                'antiproton_seed','proton_beamfront','plasma_electrons','plasma_positrons'}));
             
             % For the fields, specify magnetic (b) or electrin (e)
             p.addParameter('field', 'e', @(x) ismember(x,{'e','b'}));
@@ -248,6 +249,8 @@ classdef OsirisLoader < handle
             switch obj.species
                 case 'plasma_electrons'
                     species_name = 'electrons';
+                case 'plasma_positrons'
+                    species_name = 'positrons';
                 otherwise
                     species_name = obj.species;
                 
@@ -542,6 +545,8 @@ classdef OsirisLoader < handle
                     obj.nproton_beam = obj.ndataOut;
                 case 'plasma_electrons'
                     obj.nplasma_electrons = abs(obj.ndataOut);
+                case 'plasma_positrons'
+                    obj.nplasma_positrons = obj.ndataOut;
                 otherwise
                     obj.nelectron_bunch = abs(obj.ndataOut);
             end %switch
@@ -729,6 +734,24 @@ classdef OsirisLoader < handle
                 case 'sum'
                     dr = r(2) - r(1); dz = z(2) - z(1);
                     intout = dz*sum(2*pi*dr*sum((r').*data));
+                case 'trapz'
+                    intout = trapz(z,2*pi*trapz(r',(r').*data));
+                case 'simpsons'
+                    intout = simpsons(z,2*pi*simpsons(r',(r').*data));
+            end % switch integral type
+        end % cylindrical_integration
+        
+        function intout = radial_integration(r,z,data,varargin)
+            if nargin == 3
+                integral_type = 'sum';
+            else
+                integral_type = varargin{1};
+            end % if nargin
+            
+            switch integral_type
+                case 'sum'
+                    dr = r(2) - r(1); dz = z(2) - z(1);
+                    intout = dz*sum(2*pi*dr*((r').*data),2);
                 case 'trapz'
                     intout = trapz(z,2*pi*trapz(r',(r').*data));
                 case 'simpsons'

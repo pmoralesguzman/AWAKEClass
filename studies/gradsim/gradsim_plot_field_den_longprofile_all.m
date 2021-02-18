@@ -17,7 +17,7 @@ clear;
 
 % file location variables
 datadirs = {'gm20','g0','gp10'};
-datadirs_sim = {'gm20','g0','gp10'};
+datadirs_sim = {'gm10','g0','gp10'};
 
 % datadirs = {'gm20'};
 % datadirs_sim = {'gm20'};
@@ -140,7 +140,7 @@ for d = 1:length(datadirs)
     
     %----------------- PLOT EXP 2D
     imagesc(ax_density_exp(d),'XData',z_plot,'YData',r_plot,'CData',double(density_plot>0),'alphadata',ind_opaque);
-    grad = colorGradient([1 1 1],[0 0 0],2);
+    grad = [1 1 1; 0 0 0];
     colormap(ax_density_exp(d),grad);
     text(0.025,hletter,letters{2*(d-1)+1},'Units','normalized','FontSize',12)
     
@@ -231,7 +231,7 @@ for d = 1:length(datadirs)
 
     
     imagesc(ax_density_sim(d),'XData',z_plot,'YData',[-max(r_plot),max(r_plot)],'CData',double(density_plot>0),'alphadata',ind_opaque);
-    grad = colorGradient([1 1 1],[0 0 0],2);
+    grad = [1 1 1; 0 0 0];
     colormap(ax_density_sim(d),grad);
     text(0.025,hletter,letters{2*(d-1)+2},'Units','normalized','FontSize',12)
 %         ylabel('x (mm)')

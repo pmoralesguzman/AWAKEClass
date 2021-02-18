@@ -68,6 +68,7 @@ classdef OsirisDenormalizer < handle & OsirisLoader
         proton_beam; % proton bunch density
         plasma_electrons; % plasma electrons density
         electron_bunch; % accelerated electron bunch density
+        plasma_positrons;
         % more species to come ...
         
         % raw_data
@@ -188,14 +189,17 @@ classdef OsirisDenormalizer < handle & OsirisLoader
         function varargout = denorm_density(obj,varargin)
             
             if isempty(varargin)
-                switch obj.species
-                    case {'proton_beam','proton_bunch'}
-                        obj.proton_beam = obj.plasmaden*obj.nproton_beam;
-                    case 'plasma_electrons'
-                        obj.plasma_electrons = obj.plasmaden*obj.nplasma_electrons;
-                    otherwise
-                        obj.electron_bunch = obj.plasmaden*obj.nelectron_bunch;
-                end % switch species
+                obj.(obj.species) = obj.plasmaden*obj.(['n',obj.species]);
+%                 switch obj.species
+%                     case {'proton_beam','proton_bunch'}
+%                         obj.proton_beam = obj.plasmaden*obj.nproton_beam;
+%                     case 'plasma_electrons'
+%                         obj.plasma_electrons = obj.plasmaden*obj.nplasma_electrons;
+%                     case 'plasma_positrons' 
+%                         obj.plasma_
+%                     otherwise
+%                         obj.electron_bunch = obj.plasmaden*obj.nelectron_bunch;
+%                 end % switch species
                 varargout{1} = obj;
             else
                 varargout{1} = obj.plasmaden*varargin{1};

@@ -27,11 +27,13 @@ close all;
 
 % parameters
 
-datadir = 'gm20';
-measurement_point = 1350; % in cm, from plasma beginning
-dump = 95;
+datadir = 'gm10';
+measurement_point = 1200; % in cm, from plasma beginning
+dump = 0;
 binsize = 0.41214;
-trans_lims = linspace(0,0.3,138); %cm (74 for 0.16 cm (see above))
+trans_lims = linspace(0,0.6,2*138); %cm (74 for 0.16 cm (see above))
+% trans_lims = linspace(0,0.01,40); %cm (74 for 0.16 cm (see above))
+
 xi_range = [18.5335,0];
 dataformat = 'h5';
 
@@ -70,6 +72,7 @@ r = O.denorm_distance(O.nr_raw(ixi));
 O.npr_raw = O.npr_raw(ixi); 
 O.nr_raw = O.nr_raw(ixi);
 O.q_raw = O.q_raw(ixi);
+q = O.q_raw;
 O.nE_raw = O.nE_raw(ixi);
 
 % front and back propagate
@@ -120,14 +123,17 @@ end
 r_in = trans_lims(1:end-1);
 r_ex = trans_lims(2:end);
 ringvolume = binsize*pi*(r_ex.^2-r_in.^2);
-densitymatrix = fliplr((chargematrix./ringvolume')*5e6);
+chargematrix = fliplr(chargematrix);
+densitymatrix = (chargematrix./ringvolume')*5e6;
 
 tbin = linspace(trim_window_size,0,ceil(trim_window_size/binsize));
 xlims = [tbin(1),tbin(end)];
 ylims = [-trans_lims(end),trans_lims(end)];
-P.plot_field_density('density_plot',densitymatrix,'r_plot',ylims,'z_plot',xlims);
+P.plot_field_density('density_plot',densitymatrix,'r_plot',10*ylims,'z_plot',xlims);
+P.plot_field_density('density_plot',chargematrix,'r_plot',10*ylims,'z_plot',xlims);
+
 P.plot_name = '12dd3'; P.save_format = 'png'; P.fig_handle = gcf; 
-P.save_plot();
-save(['loading_files/',datadir,'densitytimeprofile.mat'],'densitymatrix','xlims','ylims')
+% P.save_plot();
+% save(['loading_files/',datadir,'densitytimeprofile.mat'],'densitymatrix','xlims','ylims')
 
 charge = O.cylindrical_integration(trans_lims(1:end-1),fliplr(tbin),densitymatrix);

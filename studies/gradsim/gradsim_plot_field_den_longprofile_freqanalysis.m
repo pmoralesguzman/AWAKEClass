@@ -16,13 +16,13 @@ clear;
 close all;
 
 % file location variables
-datadir = 'gp20';
+datadir = 'gm20';
 dataformat = 'h5';
 useAvg = true;
-dump_list = 59:1:59;
+dump_list = 0:1:100;
 
 % saving data
-save_flag = false;
+save_flag = true;
 save_format = {'png'};
 
 % plasma properties
@@ -37,7 +37,7 @@ species = 'proton_beam';
 % choose limits (in cm, must denormalize)
 trans_range = [0 0.1];
 % xi_range = [4.8 4.4];
-xi_range = [18 0.0];
+xi_range = [14.2 0.0];
 
 % choose property to plot
 property_plot = 'both'; % density, wakefields, both
@@ -59,7 +59,7 @@ fig_number = 3;
 
 
 % directory to save the plots
-plots_dir = ['XXX/',datadir,'/',...
+plots_dir = ['gradsim_test/2D/',datadir,'/',...
     property_plot,'/',wakefields_direction,'/',...
     'xi',num2str(round(xi_range(1))),'xi',...
     num2str(round(xi_range(2)))];
@@ -72,25 +72,12 @@ P = Plotty('datadir',datadir,'dataformat',dataformat,...
     'plasmaden',plasmaden,'trans_range',trans_range,'xi_range',xi_range,...
     'wakefields_direction',wakefields_direction,'species',species,...
     'property_plot',property_plot,'denormalize_flag',denormalize_flag,...
-    'make_pause',make_pause,'fig_number',fig_number,...
-    'include_long_profile',true);
+    'make_pause',make_pause,'fig_number',fig_number);
 
 
 figure(fig_number);
-P.field_density_plot();
-
-% yline(0.1,'r','LineWidth',1)
-% yline(0.4,'r','LineWidth',1)
-% yline(0.6,'r','LineWidth',1)
-% yline(0.8,'r','LineWidth',1)
-% yline(1,'r','LineWidth',1)
-% yline(1.2,'r','LineWidth',1)
-% yline(1.4,'r','LineWidth',1)
-
-% ylim([-1.6,1.6])
+P.plot_field_density('include_lineout','density_profile','trans_lines_position',[-0.0536 0.0536]);
 
 % P.plot_name = [datadir,property_plot,n];
 % P.save_plot();
-% 
-% end
 

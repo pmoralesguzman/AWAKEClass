@@ -27,11 +27,12 @@ clear;
 
 % parameters
 
-datadir = 'gm20';
+datadir = 'gm10';
 measurement_point = 1350; % in cm, from plasma beginning
 dump = 100;
 binsize = 0.41214;
 trans_lims = linspace(0,0.3,138); %cm (74 for 0.16 cm (see above))
+% trans_lims = linspace(0,0.01,40); %cm (74 for 0.16 cm (see above))
 xi_range = [18.5335,0];
 dataformat = 'h5';
 
@@ -78,7 +79,7 @@ prop_distances = measurement_point + O.simulation_window - z;
 
 new_r = O.denorm_distance(O.charge_pusher(O,prop_distances));
 
-dy = (250/2)*1e-4; % 74 um width
+dy = (74/2)*1e-4; % 74 um width
 
 n_points = 30;
 
@@ -146,8 +147,8 @@ densitymatrix = fliplr(chargematrix);
 tbin = linspace(trim_window_size,0,ceil(trim_window_size/binsize));
 xlims = [tbin(1),tbin(end)];
 ylims = [-trans_lims(end),trans_lims(end)];
-P.plot_field_density('density_plot',densitymatrix,'r_plot',ylims,'z_plot',xlims);
-P.plot_name = '123'; P.save_format = 'png'; P.fig_handle = gcf; 
+P.plot_field_density('density_plot',densitymatrix,'r_plot',10*ylims,'z_plot',xlims);
+P.plot_name = '74_zoom'; P.save_format = {'png','eps'}; P.fig_handle = gcf; 
 P.save_plot();
 
 save(['loading_files/',datadir,'densitytimeprofile_slit.mat'],'densitymatrix','xlims','ylims')

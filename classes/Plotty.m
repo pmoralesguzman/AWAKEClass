@@ -93,6 +93,7 @@ classdef Plotty < handle & OsirisDenormalizer
         waterfall_mat;
         waterfall_handle;
         fig_handle;
+        plot_handle;
         
         struct_movie;
         
@@ -120,27 +121,27 @@ classdef Plotty < handle & OsirisDenormalizer
             % will not save anything)
             p.addParameter('save_format', {'png','fig','eps'}, @(x) any(ismember(x,{'png','fig','eps','pdf',''})));
             % Specify if save or not
-            p.addParameter('save_flag', true, @(x) islogical(x));
+            p.addParameter('save_flag', true, @(x) islogical(x) || x == 0 || x == 1);
             % Specify if actually plot or not (the plot in question varies from function to function)
-            p.addParameter('do_plot', true, @(x) islogical(x));
+            p.addParameter('do_plot', true, @(x) islogical(x) || x == 0 || x == 1);
             % Specify if the units of the plot should be denormalized
-            p.addParameter('denormalize_flag', true, @(x) islogical(x));
+            p.addParameter('denormalize_flag', true, @(x) islogical(x) || x == 0 || x == 1);
             % (plot_field_density) Specifiy which property to plot, or if both
             p.addParameter('property_plot', 'both', @(x) any(ismember(x,{'wakefields','density','both'})));
             % (plot_field_density) Specify if movie should be created
-            p.addParameter('create_movie', false, @(x) islogical(x));
+            p.addParameter('create_movie', false, @(x) islogical(x) || x == 0 || x == 1);
             % (plot_field_density) Specify if struct with movie frames
             % should be saved
-            p.addParameter('save_movie_struct', false, @(x) islogical(x));
+            p.addParameter('save_movie_struct', false, @(x) islogical(x) || x == 0 || x == 1);
             
             % handle of the figure to save
             p.addParameter('fig_handle',[], @(x) ishghandle(x,'figure'));
             
             % flag to put a title in the figures
-            p.addParameter('title_flag', true, @(x) islogical(x));
+            p.addParameter('title_flag', true, @(x) islogical(x) || x == 0 || x == 1);
             
             % flag to make a pause in a series of plots
-            p.addParameter('make_pause', true, @(x) islogical(x));
+            p.addParameter('make_pause', true, @(x) islogical(x) || x == 0 || x == 1);
             
             % plot scale
             p.addParameter('plot_scale', 'linear', @(x) any(ismember(x,{'linear','log'})));
@@ -149,7 +150,7 @@ classdef Plotty < handle & OsirisDenormalizer
             p.addParameter('fig_number', 0, @(x) isfloat(x) && x > 0);
             
             % field density plot options
-            p.addParameter('mirror_flag', true, @(x) islogical(x));
+            p.addParameter('mirror_flag', true, @(x) islogical(x) || x == 0 || x == 1);
             
             p.KeepUnmatched = true;
             p.parse(varargin{:});
@@ -278,9 +279,9 @@ classdef Plotty < handle & OsirisDenormalizer
             r_plot             = p.Results.r_plot;
             z_plot             = p.Results.z_plot;
             
-            if field_plot == 0
+            if length(field_plot) <= 1
                 [field_plot,~,r_plot,z_plot] = obj.load_data_field_density_plot();
-            elseif (r_plot == 0) || (z_plot == 0)
+            elseif all(r_plot == 0) || all(z_plot == 0)
                 error('Please also give r_plot and z_plot.')
             end
             
@@ -292,7 +293,7 @@ classdef Plotty < handle & OsirisDenormalizer
             % the standard deviation is used as a measure the avoid
             % noisy peaks that sets a wrong scale for the opaqueness
             % get 3 times the std deviation with no weights
-            meanstd_field = 3*std(abs(field_plot),[],'all');
+            meanstd_field = 5*std(abs(field_plot),[],'all')+eps;
             
             
             % set the limits to the axes
@@ -325,6 +326,11 @@ classdef Plotty < handle & OsirisDenormalizer
             r_plot             = p.Results.r_plot;
             z_plot             = p.Results.z_plot;
             
+            switch obj.species
+                case {'plasma_positrons','plasma_electrons'}
+                    density_plot = density_plot - median(density_plot,'all');
+            end
+            
             switch obj.plot_scale
                 case 'log'
                     density_plot_l = log(density_plot+1);
@@ -344,7 +350,7 @@ classdef Plotty < handle & OsirisDenormalizer
             % the standard deviation is used as a measure the avoid
             % noisy peaks that sets a wrong scale for the opaqueness
             % get 3 times the std deviation with no weights
-            meanstd_density = 3*std(density_plot_mirrored,[],'all');
+            meanstd_density = 3*std(density_plot_mirrored,[],'all')+eps;
             max_opaqueness = 1;
             ind_opaque = max_opaqueness*density_plot_mirrored;
             ind_opaque(density_plot_mirrored > meanstd_density) = max_opaqueness*meanstd_density;
@@ -364,7 +370,8 @@ classdef Plotty < handle & OsirisDenormalizer
                     imagesc(obj.ax_density,'XData',z_plot,'YData',r_plot,'CData',density_plot_mirrored);
                 case 'linear'
                     imagesc(obj.ax_density,'XData',z_plot,'YData',r_plot,'CData',double(density_plot_mirrored>0),'alphadata',ind_opaque);
-                    grad = colorGradient([1 1 1],[0 0 0],2);
+%                     grad = colorGradient([1 1 1],[0 0 0],2);
+                    grad = [1 1 1; 0 0 0];
                     colormap(obj.ax_density,grad);
             end % switch plot scale
         end % plot density
@@ -379,8 +386,8 @@ classdef Plotty < handle & OsirisDenormalizer
             p.addParameter('density_plot', 0, @(x) isfloat(x));
             p.addParameter('r_plot', 0, @(x) isfloat(x));
             p.addParameter('z_plot', 0, @(x) isfloat(x));
-            p.addParameter('mirror_flag', true, @(x) islogical(x));
-            p.addParameter('trans_lines_2D_flag', true, @(x) islogical(x));
+            p.addParameter('mirror_flag', true, @(x) islogical(x) || x == 0 || x == 1);
+            p.addParameter('trans_lines_2D_flag', false, @(x) islogical(x) || x == 0 || x == 1);
             p.addParameter('trans_lines_position', [0,0], @(x) isfloat(x));
             p.addParameter('ymax_density_profile', 8e14, @(x) isfloat(x));
             p.addParameter('include_lineout', '2D', @(x) any(ismember(x,{'2D','both','field_lineout','density_profile'})));
@@ -480,7 +487,7 @@ classdef Plotty < handle & OsirisDenormalizer
                                         
                     r_lineplot = linspace(0,max(r_plot),size(density_plot,1));
                     ir = (r_lineplot < obj.trans_lines_position(2)*10) & (r_lineplot > obj.trans_lines_position(1)*10);
-                    long_profile = obj.cylindrical_radial_integration(r_lineplot(ir),density_plot(ir,:),'just_sum');
+                    long_profile = obj.cylindrical_radial_integration(r_lineplot(ir),density_plot(ir,:),'just_sum'); %just sum
                     
                     ax_longprofile = nexttile;
                     z_lineplot = linspace(max(z_plot),min(z_plot),length(long_profile));
@@ -499,13 +506,13 @@ classdef Plotty < handle & OsirisDenormalizer
                     ylabel({'charge','density (a. u.)'});
                     ax_longprofile.FontSize = 12;
                     
-                end % if include long profile
+                end % if include lineout
                 
                 if ismember(obj.include_lineout,{'field_lineout','both'})
                     
                     ax_lineout = nexttile;
                     % HARDCODED 1111
-                    lineout = field_plot(3,:);
+                    lineout = field_plot(10,:);
                     plineout = plot(obj.dtime + obj.simulation_window - obj.z,lineout);
                     ax_lineout.XDir = 'reverse';
                     xlim(obj.ax_density.XLim);
@@ -544,6 +551,10 @@ classdef Plotty < handle & OsirisDenormalizer
                 
                 if n < length(obj.dump_list)
                     clf
+                    density_plot = 0;
+                    field_plot = 0;
+                    r_plot = 0;
+                    z_plot = 0;
                 end % clear figure
                 obj.progress_dump('Plotting 2D',n,length(obj.dump_list))
             end % length dump list
@@ -699,9 +710,9 @@ classdef Plotty < handle & OsirisDenormalizer
                 % select the axis
                 
                 if obj.denormalize_flag
-                    z_plot = (obj.z - obj.simulation_window)/100; % m
+                    z_plot = (obj.dtime + obj.simulation_window - obj.z)/100; % m
                 else
-                    z_plot = obj.nz - obj.n_simulation_window;
+                    z_plot = (obj.ntime + obj.n_simulation_window - obj.nz)/(2*pi);
                 end
                 
                 % begin the plot
@@ -713,22 +724,24 @@ classdef Plotty < handle & OsirisDenormalizer
                     fig_lineout.OuterPosition = [0.1 0.3 0.8 0.5]; %[0.1 0.3 0.8 0.5]
                 end
                 
-                plot(z_plot,lineout_plot,'LineWidth',1);
+                obj.plot_handle = plot(z_plot,lineout_plot,'LineWidth',2);
                 xlim(([min(z_plot),max(z_plot)]));
-                
+                ax = gca;
+                ax.XDir = 'reverse';
                 
                 if obj.denormalize_flag
                     if obj.title_flag
                         title(['propagation dist. = ',num2str(obj.propagation_distance/100,2),' m',' (on axis)']) %(r = 1/kp)
                     end
                     ylabel([obj.wakefields_direction,'. fields (MV/m)'])
-                    xlabel('z (m)');
+                    xlabel('ct - z (cm)');
                 else
                     if obj.title_flag
                         title(['propagation dist. = ',num2str(obj.n_propagation_distance,2),'',' (r = [0,0.536] mm)']) %(r = 1/kp)
                     end
                     ylabel([obj.wakefields_direction,'. fields'])
-                    xlabel('z');
+                    xlabel('ct - z (\lambda_p)');
+
                 end
                 
                 line_flag = false;

@@ -9,7 +9,7 @@ leg = {'-2 %/m','-1.5 %/m','-1 %/m','-0.5 %/m','0 %/m','0.5 %/m','1 %/m','1.5 %/
 fig1 = openfig(['gradsim_paper/energy_gain/fig/energygain.fig']);
 oax1 = fig1.Children(2);
 
-fig2 = openfig(['gradsim_paper/amplitude/gradsim/fig/maxlongxi6.fig']);
+fig2 = openfig(['gradsim_paper/amplitude/fig/maxlongxi6.fig']);
 oax2 = fig2.Children(2);
 
 
