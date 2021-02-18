@@ -15,10 +15,10 @@
 close all;
 
 % file location variables
-datadir = 'SM';
+datadir = 'SMHD';
 dataformat = 'h5';
 useAvg = true;
-dump_list = 180:1:200;
+dump_list = 0:1:200;
 
 % saving data
 save_flag = true;

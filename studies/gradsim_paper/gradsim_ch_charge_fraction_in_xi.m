@@ -8,51 +8,53 @@
 % Work in progress
 %
 % P. I. Morales Guzman
-% Last update: 22/01/2020
+% Last update: 18/02/2021
 %________________________________________________________________________
 
 clear;
 close all;
 
+% run switch
+run_it = 0;
+
+plots_dir = ['gradsim_paper/chargeinxi/',''];
+plot_name = ['chargeinxi'];
+
 % load files
-load('color_red_to_blue.mat');
+load('color_red_to_blue.mat'); % ccrb
 load('loading_files/gradsim_dephasing.mat');
+% i_color = [3,5,7];
+i_color = [1:9];
 
-
-% data directory
+% cell plotting parameters
 % datadirs    = {'gm10','g0','gp10'};
 datadirs = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
 % leg         = {'-1 %/m','0 %/m','1 %/m'};
 leg = {'-2 %/m','-1.5 %/m','-1 %/m','-0.5 %/m','0 %/m','0.5 %/m','1 %/m','1.5 %/m','2 %/m'};
+% line_style = {'--','-','--'};
+line_style = {':','--','-.','-','-','-','-.','--',':'};
 
+% plotting parameters
+fontsize_annotation = 12;
+fontsize_label = 14;
+
+% study parameters
 dataformat  = 'mat';
 useAvg      = false;
-initialdump = 0;
 dump_list   = 0:1:100;
-run_it = 1;
-
-% save directory
-plots_dir           = ['gradsim_paper/chargeinxi/',''];
-plot_name_suffix    = [''];
-save_format         = {'png','eps','fig'};
-plot_name           = 'chargeinxi';
-
-% properties
-plasma_density  = 1.81e14;
-property        = 'density';
-
+plasmaden   = 1.81e14;
+property    = 'density';
 trans_limit = 0.0536;
-dephasing_xi = [14;7;1];
-
+dephasing_xi= [14;7;1];
 
 % Load the analysis class and initial charge
 O = OsirisDenormalizer(...
     'datadir','g0','dataformat',dataformat,'useAvg',useAvg',...
-    'dump',initialdump,'plasmaden',plasma_density,...
+    'dump',0,'plasmaden',plasmaden,...
     'property',property,'raw_dataset','q',...
     'species','proton_beam','direction','r',...
     'trans_range',[0,trans_limit]);
-P = Plotty('plots_dir',plots_dir,'plasmaden',plasma_density,...
+P = Plotty('plots_dir',plots_dir,'plasmaden',plasmaden,...
     'plot_name',plot_name,'save_flag',true);
 
 xi_ranges = dephasing_xi + [O.plasma_wavelength/2,-O.plasma_wavelength/2];
@@ -79,7 +81,6 @@ if run_it
                     + [O.plasma_wavelength/2,-O.plasma_wavelength/2];
                 end
 
-                
                 %         if any(O.xi_range < 2) && (ismember(O.datadir,{'gm10','gp10'}))
                 %             continue
                 %         end
@@ -100,40 +101,35 @@ if run_it
             
         end % for dump
         
-        O.progress_dump('xi',xi,length(dephasing_xi))
+        O.progress_dump('xi',d,length(datadirs))
     end % for datadirs
 else
     load('loading_files/gradsim_chargeinxi.mat');
 end % if run it
 
-% i_color = [3,5,7];
-i_color = [1:9];
+
 %% plotting
 
 fig_cvsz = figure(1);
 fig_cvsz.OuterPosition = [100 100 1200 400];
-% line_style = {'--','-','--'};
-line_style = {':','--','-.','-','-','-','-.','--',':'};
-fontsize_annotation = 12;
-fontsize_label = 14;
 
 tt = tiledlayout(1,3);
 tt.TileSpacing = 'compact';
 tt.Padding = 'compact';
 for xi = 1:length(dephasing_xi)
-    ax(xi) = nexttile;
-    ax(xi).FontSize = fontsize_label;
+    ax_ch(xi) = nexttile;
+    ax_ch(xi).FontSize = fontsize_label;
     charge_norm_xi = mean(squeeze(chargevsz(xi,:,1)));
+    hold on
     for d = 1:length(datadirs)
         %         if (x == 3) && (ismember(datadirs{d},{'gm10','gp10'}))
         %             continue
         %         end
-        hold on
+        
         plot(squeeze(plot_z(xi,d,:)),squeeze(chargevsz(xi,d,:)./charge_norm_xi),...
             line_style{d},'LineWidth',2,'color',ccrb(i_color(d),:))
-        hold off
     end % datadir
-    hold on
+    
     xline(4,'--','LineWidth',1,'color',[0 0.4470 0.7410]);
     hold off
     switch dephasing_xi(xi)
@@ -152,7 +148,7 @@ for xi = 1:length(dephasing_xi)
 end % xi
 
 
-legend(ax(3),leg,'location','southwest','FontSize',11)
+legend(ax_ch(3),leg,'location','southwest','FontSize',11)
 xlabel(tt,'z (m)')
 ylabel(tt,'total charge (a.u.)');
 

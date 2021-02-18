@@ -1,6 +1,7 @@
 %________________________________________________________________________
-% Script to produce waterfall plots for different xi ranges of the proton bunch.
-% Special version to produce the plot for the paper.
+% gradsim paper
+% Script to follow the zero crossing of fields from waterfall plots. It
+% also creates the waterfall plots if not yet made. 
 %
 % Osiris 4.4.4
 %
@@ -9,32 +10,37 @@
 % Work in progress
 %
 % P. I. Morales Guzman
-% Last update: 18/06/2020
+% Last update: 18/02/2021
 %________________________________________________________________________
 clear;
 close all;
 
+plots_dir = ['gradsim_paper/x0shift_in_xi/'];
+plot_name = ['dephasing','1471','allgrads0'];
+
+% load color order for 9 gradients
+load('color_purple_to_green.mat'); % cc
+load('color_red_to_blue.mat'); % ccrb
+
+% cell plotting parameters
 datadirs = {'gm20','gm15','gm10','gm5','g0','gp5','gp10','gp15','gp20'};
 % datadirs = {'gm20','gm15','gm10','gm5','g0','gp1','gp2','gp5','gp10'};
 leg = {'-2 %/m','-1.5 %/m','-1 %/m','-0.5 %/m','0 %/m','0.5 %/m','1 %/m','1.5 %/m','2 %/m'};
+line_style = {':','--','-.','-','-','-','-.','--',':'};
 
-% datadirs = {'gp2'};
+% plotting parameters
+fontsize_annotation = 12;
+fontsize_label = 14;
+
+% study parameters
 plasmaden = 1.81e14;
 dump_list = 0:1:100;
 useAvg = false;
 dataformat = 'mat';
 dephasing_xi = [14,7,1]; % cm
 
-plots_dir = ['gradsim_paper/dephasing_lines/'];
-plot_name = ['dephasing','1471','allgrads0'];
+% initialize classes
 P = Plotty('plots_dir',plots_dir,'plot_name',plot_name);
-
-
-% load color order for 9 gradients
-load('color_purple_to_green.mat');
-load('color_red_to_blue.mat');
-
-
 OPA = OsirisPhaseAnalysis('datadir',datadirs{1},...
     'property','fields','wakefields_direction','long',...
     'plasmaden',plasmaden,...
@@ -44,9 +50,11 @@ OPA = OsirisPhaseAnalysis('datadir',datadirs{1},...
 
 OPA.dephasing();
 
+% initialize variables
 dephasing_z = zeros(length(dephasing_xi),length(datadirs),length(OPA.dephasing_line));
-dephasing_lines = dephasing_z;
-%%
+dephasing_lines = zeros(length(dephasing_xi),length(datadirs),length(OPA.dephasing_line));
+
+%% start the script
 fig_dephase = figure(1);
 fig_dephase.OuterPosition = [100 100 1200 400];
 colororder(ccrb);
@@ -54,38 +62,29 @@ tt = tiledlayout(1,3);
 tt.TileSpacing = 'compact';
 tt.Padding = 'compact';
 
-fontsize_annotation = 12;
-fontsize_label = 14;
-
 for xi = 1:length(dephasing_xi)
     
     for d = 1:length(datadirs)
         
-        OPA = OsirisPhaseAnalysis('datadir',datadirs{d},...
-            'property','fields','wakefields_direction','long',...
-            'plasmaden',plasmaden,...
-            'dump_list',dump_list,'useAvg',useAvg,...
-            'dataformat',dataformat,'dephasing_xi',dephasing_xi(xi),...
-            'force_waterfall',false);
+        OPA.datadir = datadirs{d};
+        OPA.dephasing_xi = dephasing_xi(xi);
         OPA.dephasing_first = [];
         
         OPA.dephasing();
-        
-        
+
         dephasing_z(xi,d,:) = linspace(OPA.waterfall_z(1),OPA.waterfall_z(2),...
             length(OPA.dephasing_line));
         dephasing_lines(xi,d,:) = OPA.dephasing_line*2; % HALF PLASMA WAVELENGTH !!!
         OPA.progress_dump('dephasing lines',d,length(datadirs))
         
-    end
+    end % datadirs
     
-    ax(xi) = nexttile;
-    ax(xi).FontSize = fontsize_label;
-    line_style = {':','--','-.','-','-','-','-.','--',':'};
+    ax_x0(xi) = nexttile;
+    ax_x0(xi).FontSize = fontsize_label;
     hold on
     for d = 1:length(datadirs)
         p1 = plot(squeeze(dephasing_z(xi,d,:)),squeeze(dephasing_lines(xi,d,:)),line_style{d},'LineWidth',2);
-    end
+    end % datadirs
     yline(-1,'--','LineWidth',1,'color',[0 0.4470 0.7410])
     yline(-2,'--','LineWidth',1,'color',[0 0.4470 0.7410])
 %     yline(0.0,'--','LineWidth',1,'color',[0 0.4470 0.7410])
@@ -112,7 +111,7 @@ for xi = 1:length(dephasing_xi)
     
 end % xi
 
-legend(ax(3),leg,'location','southeast','FontSize',fontsize_annotation,'NumColumns',2)
+legend(ax_x0(3),leg,'location','southeast','FontSize',fontsize_annotation,'NumColumns',2)
 ylabel(tt,'zero-crossing position shift (\lambda_p/2)','FontSize',fontsize_label)
 xlabel(tt,'z (m)','FontSize',fontsize_label)
 
