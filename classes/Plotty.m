@@ -390,7 +390,7 @@ classdef Plotty < handle & OsirisDenormalizer
             p.addParameter('trans_lines_2D_flag', false, @(x) islogical(x) || x == 0 || x == 1);
             p.addParameter('trans_lines_position', [0,0], @(x) isfloat(x));
             p.addParameter('ymax_density_profile', 8e14, @(x) isfloat(x));
-            p.addParameter('include_lineout', '2D', @(x) any(ismember(x,{'2D','both','field_lineout','density_profile'})));
+            p.addParameter('include_lineout', 'no', @(x) any(ismember(x,{'no','both','field_lineout','density_profile'})));
                         
             p.parse(varargin{:});
             
@@ -653,27 +653,11 @@ classdef Plotty < handle & OsirisDenormalizer
             z_plot_temp = obj.dtime+obj.simulation_window-obj.z;
             z_plot = [z_plot_temp(1),z_plot_temp(end)];
         end % load data field density plot
-        
-        function obj = lineout_plot(obj)
+        % ------------------------------------------------------------------------------
+        function obj = plot_lineout(obj) 
             
             if obj.create_movie
-                movie_dir = ['movies/lineout/'];
-                struct_dir = ['save_files/lineout/'];
-                if ~isfolder(movie_dir)
-                    mkdir(movie_dir);
-                end
-                if ~isfolder(struct_dir)
-                    mkdir(struct_dir);
-                end
-                video = VideoWriter([movie_dir,...
-                    obj.wakefields_direction,obj.datadir,obj.property_plot,...
-                    'xi',num2str(round(obj.xi_range(1))),'xi',...
-                    num2str(round(obj.xi_range(2))),'t',num2str(round(obj.trans_range(1))),...
-                    't',num2str(round(obj.trans_range(2))),'.avi']);
-                video.FrameRate = 4;
-                open(video);
-                f = 0;
-                struct_movie(length(obj.dump_list)) = struct('cdata',[],'colormap',[]);
+                [~,video] = obj.setup_movie();
             end % create movie
             
             for n = 1:length(obj.dump_list)
@@ -710,7 +694,7 @@ classdef Plotty < handle & OsirisDenormalizer
                 % select the axis
                 
                 if obj.denormalize_flag
-                    z_plot = (obj.dtime + obj.simulation_window - obj.z)/100; % m
+                    z_plot = (obj.dtime + obj.simulation_window - obj.z); % cm
                 else
                     z_plot = (obj.ntime + obj.n_simulation_window - obj.nz)/(2*pi);
                 end
@@ -724,32 +708,24 @@ classdef Plotty < handle & OsirisDenormalizer
                     fig_lineout.OuterPosition = [0.1 0.3 0.8 0.5]; %[0.1 0.3 0.8 0.5]
                 end
                 
-                obj.plot_handle = plot(z_plot,lineout_plot,'LineWidth',2);
+                obj.plot_handle = plot(z_plot,lineout_plot,'k','LineWidth',1.2);
                 xlim(([min(z_plot),max(z_plot)]));
-                ax = gca;
-                ax.XDir = 'reverse';
-                
+                ax_lo = gca;
+                ax_lo.XDir = 'reverse';
+              
                 if obj.denormalize_flag
                     if obj.title_flag
-                        title(['propagation dist. = ',num2str(obj.propagation_distance/100,2),' m',' (on axis)']) %(r = 1/kp)
+                        title(['propagation dist. = ',num2str(obj.propagation_distance/100,2),' m',''])
                     end
                     ylabel([obj.wakefields_direction,'. fields (MV/m)'])
                     xlabel('ct - z (cm)');
                 else
                     if obj.title_flag
-                        title(['propagation dist. = ',num2str(obj.n_propagation_distance,2),'',' (r = [0,0.536] mm)']) %(r = 1/kp)
+                        title(['propagation dist. = ',num2str(obj.n_propagation_distance,2),'']) 
                     end
                     ylabel([obj.wakefields_direction,'. fields'])
                     xlabel('ct - z (\lambda_p)');
 
-                end
-                
-                line_flag = false;
-                if line_flag
-                    hold on
-                    %                    plot(max(z_plot)-[0.003 0.003],r_plot,'LineWidth',2,'k')
-                    xline(max(z_plot)-0.0025,'k','LineWidth',2)
-                    hold off
                 end
                 
                 drawnow;
@@ -766,24 +742,16 @@ classdef Plotty < handle & OsirisDenormalizer
                     't',num2str(round(obj.trans_range(2)))];
                 obj.save_plot();
                 
-                
-                if obj.create_movie
-                    struct_movie(f+1) = getframe(gcf);
-                    f = f + 1;
+               if obj.create_movie
+                    obj.struct_movie(obj.frame_counter+1) = getframe(gcf);
+                    obj.frame_counter = obj.frame_counter + 1;
                 end % create movie
                 
                 if n < length(obj.dump_list)
                     clf
                 end % clear figure
-                obj.progress_dump('Plotting 2D',n,length(obj.dump_list))
+                obj.progress_dump('Plotting lineout',n,length(obj.dump_list))
             end % length dump list
-            
-            if obj.create_movie
-                writeVideo(video,struct_movie);
-                save(['save_files/field_density/struct',obj.datadir,...
-                    '_',obj.wakefields_direction,'.mat'],'struct_movie')
-                close(video);
-            end % if create movie
             
         end % lineout plot
         

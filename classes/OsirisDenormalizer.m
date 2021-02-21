@@ -397,6 +397,14 @@ classdef OsirisDenormalizer < handle & OsirisLoader
     
     methods(Static)
         
+        function cm = ps2cm(ps)
+            cm = ps*2.99792458e-2;
+        end
+        
+        function ps = cm2ps(cm)
+            ps = cm*2.99792458e2;
+        end
+        
         
         % function out = name(in)
         % end

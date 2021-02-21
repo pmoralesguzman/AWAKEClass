@@ -801,7 +801,7 @@ classdef OsirisLoader < handle
             
             norm_time = OD.norm_distance(prop_distance);
             
-            vel = OD.npr_raw./(OD.nE_raw+1);
+            vel = OD.npr_raw./(OD.nE_raw + 1);
             new_r = abs(OD.nr_raw + vel.*norm_time);
             
         end

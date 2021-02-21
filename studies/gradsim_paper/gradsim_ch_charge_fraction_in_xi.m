@@ -1,6 +1,9 @@
 %________________________________________________________________________
-% Script to produce calcualte the charge at some xi along z.
-%
+% gradsim paper
+% Script to calculate the charge fraction within a region +/- lambda/2
+% around a three initial xi0, following the zero-crossing of the fields 
+% starting at that xi0
+% 
 % Osiris 4.4.4
 %
 % AWAKE Experiment
@@ -22,7 +25,7 @@ plot_name = ['chargeinxi'];
 
 % load files
 load('color_red_to_blue.mat'); % ccrb
-load('loading_files/gradsim_dephasing.mat');
+load('loadingg_files/gradsim_dephasing.mat');
 % i_color = [3,5,7];
 i_color = [1:9];
 

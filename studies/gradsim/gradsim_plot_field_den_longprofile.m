@@ -1,3 +1,4 @@
+
 %________________________________________________________________________
 % Plot the 2D wakefields together with the proton bunch, or each
 % individually
@@ -31,7 +32,7 @@ plasmaden = 1.81e14;
 wakefields_direction = 'trans'; % trans, long
 
 % choose species density to plot
-species = 'proton_beam'; 
+species = 'proton_beam';    
 
 % choose limits (in cm, must denormalize)
 trans_range = [0 0.24];

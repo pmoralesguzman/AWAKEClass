@@ -18,4 +18,8 @@ else
     CreatePathClass(1)
 end
 
+set(0,'DefaultAxesColorOrder',linspecer(8))
+set(0,'DefaultLineLineWidth',1.2)
+set(0,'DefaultFigureColormap',linspecer);
 end
+

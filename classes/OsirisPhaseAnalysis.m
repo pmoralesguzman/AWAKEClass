@@ -170,8 +170,8 @@ classdef OsirisPhaseAnalysis < handle & OsirisDenormalizer
                         zero_x = fun_zerox(poly_xi10(ind_zerox),poly_data(ind_zerox),poly_xi10(ind_zerox+1),poly_data(ind_zerox+1));
                         
                         % Checking for zero at the ignored value
-                        if poly_data(end)==0
-                            zero_x(end+1) = poly_xi10(end);
+                        if poly_data(end) == 0
+                            zero_x(end + 1) = poly_xi10(end);
                         end
                         dephasing_line_temp = zero_x;
                         
@@ -228,7 +228,7 @@ classdef OsirisPhaseAnalysis < handle & OsirisDenormalizer
                 obj.dephasing_first = obj.dephasing_line(obj.dephasing_first);
             end
             
-            obj.dephasing_line = (obj.dephasing_line-obj.dephasing_first)/obj.plasma_wavelength;
+            obj.dephasing_line = (obj.dephasing_line - obj.dephasing_first)/obj.plasma_wavelength;
             
             
         end % dephasing

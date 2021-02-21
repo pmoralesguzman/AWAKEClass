@@ -1,6 +1,8 @@
 %________________________________________________________________________
-% Script to 
-%
+% gradsim paper
+% Script to calculate the mean defocusing fields within a region +/- lambda/2
+% around a three initial xi0, following the zero-crossing of the fields 
+% starting at that xi0%
 % Osiris 4.4.4
 %
 % AWAKE Experiment
